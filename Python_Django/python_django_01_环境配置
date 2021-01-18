@@ -1,0 +1,117 @@
+命令:
+	#创建Django程序
+		1.在命令提示行中通过cd指令选择想要创建程序的目录
+		2.执行django-admin startproject [projectname]
+	#进入程序目录,启动程序
+		cd Django_01_基本配置
+		python manage.py runserver 127.0.0.1.8000
+	
+	#添加任意数量的apps
+		1.在命令提示行中通过cd命令找到当前Project的总文件夹(或者在pycharm中点击terminal之后直接执行第二步)
+		2.运行python manage.py startapp app01创建完成
+		
+	#如果创建app的过程中报错，并且是因为mysqlclient版本不对，就说明在数据库迁移
+	的过程中修改了版本变量
+		1.找到报错的base.py文件
+		2.注释版本检验的两行
+		
+	#让别人访问
+		ALLOWED_HOSTS = [’192.168.1.9’,]
+		python manage.py runserver 127.0.0.1.8000
+		
+		
+Django程序目录:
+
+	Django_01_基本配置
+		Django_01_基本配置
+			-settings.py  #Django配置文件
+			-url.py       #路由系统
+			-wagi.py      #用于定义Django用socket, wsgiref,uwsgi
+		
+		#对当前Django程序所有操作可以基于python manage.py runserver
+		manage.py 
+		
+	
+		
+#Django基本环境配置(之后会做修改)
+1.创建project:
+2.配置:
+	-模板路径配置
+		TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')]  #这一行
+        ,
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+				],
+			},
+		},
+	]
+	
+	-静态文件路径
+	STATIC_URL = '/static/'
+	STATICFILES_DIRS=(
+		os.path.join(BASE_DIR, 'static'),
+	)
+	
+	#在HTML页面中访问静态CSS文件的方法，/static/相当于一个命令，告诉django去项目中的static文件夹下去找tableview.css
+	<link rel="stylesheet" href="/static/tableview.css"/>
+	
+	
+	
+3.额外配置(注释中间件,之后会做修改)
+	MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    #'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+	]
+	
+
+4.将url中的path改成url，借此来匹配正则表达式
+	用例:
+		from django.contrib import admin
+		from django.urls import path
+		from django.conf.urls import url,include
+		from api import views
+
+		urlpatterns = [
+			url(r'^(?P<version>[v1|v2]+)/deficits/$',views.SITDeficits.as_view()),
+			url(r'^(?P<version>[v1|v2]+)/menu/$',views.Menu.as_view()),
+			url(r'^(?P<version>[v1|v2]+)/deficitscharge/$',views.SITDeficitsCharge.as_view()),
+			url(r'^(?P<version>[v1|v2]+)/deficitsSYS/$',views.SITDeficitsSYS.as_view()),
+			url(r'^(?P<version>[v1|v2]+)/menuSYS/$',views.MenuSYS.as_view()),
+			url(r'^(?P<version>[v1|v2]+)/webcrawl/$',views.WebCrawl.as_view()),
+			url(r'^(?P<version>[v1|v2]+)/SITDeficitsAll/$',views.SITDeficitsAll.as_view()),
+			url(r'^(?P<version>[v1|v2]+)/SITDeficitsAnalysis/$',views.SITDeficitsAnalysis.as_view()),
+			url(r'^(?P<version>[v1|v2]+)/SITAnalysis/$',views.Analysis.as_view()),
+			url(r'^(?P<version>[v1|v2]+)/SITAnalysisDetail/$', views.AnalysisDetail.as_view()),
+		]
+
+5.添置数据库
+	在settings.py中
+	DATABASES = {
+		'default': {
+			'ENGINE': 'django.db.backends.mysql',
+			'NAME': 'db2',
+			'USER':'root',
+			'PASSWORD':'123456',
+			'HOST':'localhost',
+			'PORT':3306
+			}
+		}
+		
+	在项目同名的package下的__init__中设置
+			import pymysql
+			#告诉Django用pymysql代替MySQLDB(不支持python3)连接数据库
+			pymysql.install_as_MySQLdb()
+			

@@ -1,0 +1,269 @@
+今日内容：
+	0.唯一索引
+		create table t1(
+			id int,
+			num int, 
+			ss int,
+			unique uq1 (num,ss)#两列不能全都一样
+		PS:唯一索引
+			约束不能重复（可以为空）
+		PS:主键不能重复，（不能为空）
+		加速查找
+	
+	1.外键变种
+		a.用户表和部门表
+		
+			用户:    
+				1.alex      1
+				2.root		1
+				3.eagle	  	2
+				4.laoyao    3
+				
+				
+			部门:
+				1.服务
+				2.保安
+				3.公关
+			==>一对多
+			
+		b.用户表和博客表:
+			用户表:    
+				1.alex      1
+				2.root		1
+				3.eagle	  	2
+				4.laoyao    3
+			博客表：    FK()+唯一索引约束
+				1   /a/       4
+				2   /s/       1
+				3   /t/       2				
+			==>一对一
+			
+		c.用户网（百合网）
+			相亲记录表/主机用户关系表:
+			===>多对多双向一对多(额外创建一张关系表)
+				
+练习题：
+
+	一对一索引:
+	create table userinfo1(
+		id int auto_increment primary key,
+		name varchar(40),
+		gender char(10),
+		email varchar(64)
+		)engine=innodb default charset=utf8;
+		
+	create table admin(
+		id int not null auto_increment primary key,
+		username varchar(64) not null,
+		password varchar(64) not null,
+		user_id int not null,
+		unique uq_u1 (user_id),
+		constraint fk_admin_u1 foreign key (user_id) references userinfo1(id)
+		)engine=innodb default charset=utf8;
+	
+	
+	多对多索引:
+	create table userinfo2 (
+		id int auto_increment primary key,
+		name varchar(40),
+		gender char(10)
+		)engine=innodb default charset=utf8;
+		
+	create table hostname(
+		id int auto_increment primary key,
+		host_name varchar(64)
+		)engine=innodb default charset=utf8;
+		
+	create table host_id(
+		id int not null auto_increment primary key,
+		userid int not null,
+		hostid int not null,
+		unique uq_01 (userid,hostid),
+		constraint fk_host_01 foreign key(userid) references userinfo2(id),
+		constraint fk_host_02 foreign key(hostid) references hostname(id)
+		)engine=innodb default charset=utf8;
+	
+	
+	
+SQL语句数据行操作补充(批量处理):
+	增:
+		insert into tb(name,age) values('shit',30);
+		insert into tb(name,age) values ('aa',33)('ss',44);
+		把一张表里的某几条数据插入到另外的表中:
+		insert into tb2(name,age) select name,age from tb;
+		
+	删:
+		delete from tb2;
+		delete from tb2 where id!=(<>)2;
+		delete from tb2 where id =2;
+		delete from tb2 where id>=2;
+		delete from tb2 where id<=2;
+		delete from tb2 where id<=2 and name='shit';
+		
+	改:
+		update tb2 set name='ss' where id>33 and name='aa';
+		update tb2 set name='ss',age=22 where id>12 and name='aa';
+	查:
+		select * from tb;
+		select id,name from tb ;
+		select id, name from tb where id>10 or name='ss';
+		select id, name as cname from tb;
+		select id, name as cname, 1 from tb1; #添加额外的一列
+	其他:
+		(1).条件选择:
+		select * from tb where id <> 2;
+		select * from tb where id in (1,5,12);
+		select * from tb where id not in (1,5,12);
+		select * from tb where id between 5 and 12;
+		select * from tb where id in (select id from tb2);
+		
+		(2).通配符:
+		select * from tb where name like a%;  %代表任意字符
+		select * from tb where name like a_;  _代表一个字符
+		
+		(3).约束:
+		select * from tb limit 10; 查看前十条
+		select * from tb limit 1,2; 从第一条开始往后总共取两条，包括第一条
+		
+		select * from tb limit 10 offset 20;从第20条开始
+		
+		
+		(4).排序:
+		select * from tb;
+		select * from tb order by id desc;
+		select * from tb order by id asc;
+		
+		select * from tb order by id desc limit 10; 取后10条数据
+		
+		如有重复:
+		select * from tb order by id desc, name asc;
+		
+		(5).分组:
+		select max(id),part_id from tb group by part_id; part_id从小到大排序
+		select min(id),part_id from tb group by part_id;
+		select count(id),part_id from tb group by part_id;
+		select count(id),max(id),part_id from tb group by part_id;
+		sum,avg;
+		如果对于聚合函数的结果进行二次筛选时，必须使用having
+		select count(id),part_id from tb group by part_id having count(id)>1;
+		select count(id) as name,part_id from tb where id > 0 group by part_id having count(id)>1;
+		
+		(6).连表:
+		select * from tb1,tb2 where tb1.part_id=tb2.department_id;
+		
+		select * from tb1,tb2; (courtesian product of two dataframes:)
+		
+		select * from tb1 left join tb2  on tb1.part_id=tb2.department_id; 
+		tb1 全部显示
+		
+		select * from tb1 right join tb2 on tb1.part_id=tb2.department_id;
+		tb2 全部显示
+		
+		select * from tb1 inner join tb2 on tb1.part_id=tb2.department_id;
+		将出现null时一行隐藏
+		
+		多次连表:
+		select tb.sid from tb1   #遇到列名重复前面需要带上表名
+			left join tb2 on tb1.part_id=tb2.department_id，
+			left join tb3 on tb1.part_id=tb3.department_id; 
+		
+		命令行:
+			备份:数据表结构+数据
+			mysqldump -u root db1 > db1.sql -p 
+			备份:数据表结构
+			mysqldump -u root -d db1 > db1.sql -p
+			
+			执行文件:
+			create database db5;
+			
+		
+		创建临时表：
+		select sid from (select * from score where num>90) as s ; sid 必须在渠道的表格里面
+		
+		
+		部分练习题:
+		--表示注释
+		查询平均成绩大于90分的同学的学号和平均成绩：
+			select student_id,AVG(number) from score GROUP BY student_id having avg(number) >90;
+		查询平均成绩大于90分的同学的学号，姓名和平均成绩：
+		    select B.student_id, student.siname, B.S from (select student_id, avg(number) as S from student group by student_id having avg(number) >85) 
+			as B left join student on B.student_id=student.sid;
+			
+		查询所有学生的学号，姓名，选课数，总成绩
+			select score.student_id,student.sname,count(student_id),sum(number) from score left join student 
+			on score.student_id=student.sid group by score.student_id;
+			
+		回顾:
+			1.MySQL:文件管理的软件
+			2.三部分:
+			    -服务端
+			    -SQL语句
+				-客户端
+			3.客户端:
+				-MySQL
+				-navicat
+			4.授权:
+				-创建用户
+				-授权给用户
+				
+			5.SQL语句
+				-数据库操作
+					-create databases db default charset utf8;
+					-drop database tb;
+				-数据表
+					-列
+						-数字
+							-整数
+							-小数
+						-字符串
+							char(255) #255代表字符 
+						-时间
+						-二进制
+					-其他:引擎，字符表，起始值
+					事务：原子性操作，中间出了差错回滚到原始状态
+					
+					-主键索引:一个表只能有一个主键
+					-主键非空且唯一,加速查找
+					-唯一索引,可以为空，有加速查找的作用
+					-外键:
+						省空间加以约束
+						-一对多
+						-一对一（在foreign key一列加上唯一索引)
+						-多对多（至少三张表)
+						
+					
+					
+				-数据行
+					-增
+					-删
+					-改
+					-查
+						-in /not in 
+						-between
+						-limit
+						-group by 
+						-order by
+						—like "%a"
+						-left join tb on; 关系
+						-courtesian product 
+						-临时表：
+							select * from (select * from tb where id<10) as B
+						-补充:	
+						-insert into tb(student_id,course_id,num)
+						    select 
+						    id,
+							name'
+							1,
+							(select count(1) from tb) #计算出一个值
+						    from tb2 
+							
+						-case when () then (num) else () end 语句
+				-数据存在硬盘上
+				
+		
+			
+			
+	
+
+		
+			

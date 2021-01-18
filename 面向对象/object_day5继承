@@ -1,0 +1,71 @@
+class SuperBase:
+    def f3(self):
+        print('f3')
+
+class Base(SuperBase): #父类
+    def f2(self):
+        print('f2')
+        
+class Foo(Base): #子类
+    def f1(self):
+        print('f1')
+
+
+obj=Foo()
+obj.f1()
+obj.f2()
+obj.f3()
+#单继承
+class Base:
+    def f1(self):
+        pass
+               
+class Foo(Base):
+    
+    def f2(self):
+        pass
+       
+class Bar(Base):
+    def f3(self):
+        pass
+
+
+#多继承
+class Base1:
+    def show(self):
+        print('Base1.show')
+   
+class Base2:
+    def show(self):
+        print('Base2.show')
+ 
+class Foo(Base1,Base2):#Base关系更亲，打印左边
+    pass
+        
+obj=Foo()
+obj.show()#答应base1
+
+
+#####练习题
+class Base:
+    def f1(self):
+        print('base.f1')
+        
+        
+class Foo(Base):
+    def f2(self):
+        print('foo.f2')
+#问题1        
+obj=Foo()
+obj.f2()
+obj.f1()
+
+#问题2
+obj=Base()
+obj.f1()
+obj.f2()
+
+
+#先找自己的，再找父类的，有多个父类的情况下，先找第一个里面的，再找后面的。
+
+

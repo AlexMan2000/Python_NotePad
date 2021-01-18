@@ -1,0 +1,20 @@
+class Message:
+    def __init__(self):
+        pass
+
+
+    def email(self,em,text):
+        print(em,text)
+
+    def msg(self,tel,text):
+        print(tel,text)
+
+    def wechat(self,num,text):
+        print(num,text)
+
+
+if 1==1:
+    obj=Message()
+    obj.msg('shit','ss')
+    obj.email('shit','ss')
+    obj.wechat('shit','ss')

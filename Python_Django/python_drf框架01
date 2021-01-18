@@ -1,0 +1,299 @@
+内容回顾:
+1.开发模式
+		-普通开发模式(前后端放在一起写)
+		-前后端分离
+		
+2.后端开发
+		为前端提供URL(API/接口的开发)
+		注:永远返回HttpResponse
+
+3.Django FBV、CBV
+	FBV(function base view)
+	CBV(class base view)
+	
+	
+
+url(r'^students/', views.StudentsView.as_view()),
+	
+	
+	from django.views import View
+class StudentsView(object):
+
+    def get(self,request,*args,**kwargs):
+        return HttpResponse('GET')
+
+
+    def post(self,request,*args,**kwargs):
+        return HttpResponse('POST')
+	
+
+4.列表生成式
+	
+	class Foo:
+		pass
+		
+	class Bar:
+		pass 
+		
+		
+	#列表生成式
+	v=[item() for item in [Foo,Bar]]
+	 
+	
+5.面向对象的封装
+	-封装
+		-对同一类方法进行封装
+			class File:
+				文件增删改查方法
+			
+			class DB:
+				数据库方法
+
+		-将数据封装到对象中:
+			class File:
+				def __init__(self,a1,a2):
+				self.a1=a1
+				self.a2=a2
+			
+			obj1=File(123,666)
+			obj2=File(456.999)
+
+ 
+今日概要:
+1.restful 规范
+
+2.django rest framework 框架
+
+内容详细:
+	0. FBV、CBV
+		CBV 基于反射实现根据请求方式不同，执行不同的方法。
+	    原理：
+			a.路由
+				url--> view方法 --> dispatch方法(根据反射执行其他方法:GET/POST/DELETE/PUT)
+	class MyBaseView(object):
+    def dispatch(self, request, *args, **kwargs):
+        print('before')
+        ret=super(MyBaseView,self).dispatch(request,*args,**kwargs)#去第二个父类里面找dispatch
+        print('after')
+        return ret
+
+class StudentsView(MyBaseView,View):
+    # 父类已经有dispatch函数了
+    # def dispatch(self, request, *args, **kwargs):
+    #     return HttpResponse('dispatch')
+    #     func=getattr(self,request.method.lower())
+    #     ret=func(request,*args,**kwargs)
+
+    def get(self,request,*args,**kwargs):
+        return HttpResponse('GET')
+
+    def post(self,request,*args,**kwargs):
+        return HttpResponse('POST')
+
+    def put(self,request,*args,**kwargs):
+        return HttpResponse('PUT')
+
+    def delete(self,request,*args,**kwargs):
+        return HttpResponse('DELETE')
+
+
+class TeachersView(MyBaseView,View):
+    def get(self,request,*args,**kwargs):
+        return HttpResponse('GET')
+
+    def post(self,request,*args,**kwargs):
+        return HttpResponse('POST')
+
+    def put(self,request,*args,**kwargs):
+        return HttpResponse('PUT')
+
+    def delete(self,request,*args,**kwargs):
+        return HttpResponse('DELETE')
+		
+		
+	面试题:
+		1.django 中间件
+		   -process_request
+		   -process_view
+		   -process_response
+		   -protcess_exception
+		   -process_render_template
+		   
+		2.使用中间件做过什么?
+			-权限
+			-用户登录
+			-django的csrf如何实现？
+				-检查视图是否被@csrf_exempt(免除csrf认证）
+				-去请求体或者cookies获取token,根据token做校验
+		3.CSV小知识，csrf是需要使用
+		 -@method decoraor(csrf_exempt)
+		 -dispatch方法中（单独方法无效)
+		 
+		 from django.views.decorators.csrf import csrf_exempt,csrf_protect
+		 from django.utils.decorators import method_decorator
+		 
+		 @method_decorator(csrf_exempt,name='dispatch')
+		 class StudentsView(View):
+		 
+			@method_decorator(csrf_exempt)
+			def dispatch(self,request,*args,**kwargs):
+				return super(StudentsView,self).dispatch(request,*args,**kwargs)
+			def get(self,request,*args,**kwargs):
+				return HttpResponse('GET')
+
+			def post(self,request,*args,**kwargs):
+				return HttpResponse('POST')
+
+			def put(self,request,*args,**kwargs):
+				return HttpResponse('PUT')
+
+			def delete(self,request,*args,**kwargs):
+				return HttpResponse('DELETE')
+		 
+		 
+		 
+	总结:
+		-本质：基于反射来实现
+		-流程：路由，view函数，调用dispatch, dispatch通过反射执行
+		-取消csrf（装饰器）
+		
+		扩展：
+		   -csrf认证
+			  -基于中间件的process_view方法
+			  -基于装饰器给单独函数进行设置进行认证或无需认证
+		
+	1.restful 规范（建议）
+		a.接口开发(不太好,url会越积越多)
+			url(r'^add_order/',views.add_order),
+			url(r'^get_order/',views.get_order),
+			url(r'^del_order/',views.del_order),
+			url(r'^update_order/',views.update_order)
+			
+			def add_order(request):
+				return HttpResponse('')
+
+			def get_order(request):
+				return HttpResponse('')
+
+			def del_order(request):
+				return HttpResponse('')
+
+			def update_order(request):
+				return HttpResponse('')
+				
+		b.restful规范
+			
+			1.对于order的所有功能，只要写一个函数就可以用了，后台通过method来进行区分
+				
+				#基于FBV实现
+				urls.py
+				url(r'^order/',views.order)
+				
+				
+				views.py
+				def order(request):
+					if request.method=='GET':
+						return HttpResponse('获取订单')
+					elif request.method=='POST':
+						return HttpResponse('提交订单')
+					elif request.method=='DELETE':
+						return HttpResponse('删除订单')
+					elif request.method=='UPDATE':
+						return HttpResponse('修改订单')
+					
+					
+					
+					
+				#基于CBV实现
+				urls.py
+				url(r'^order/',views.OrderView.as_view()),
+				
+				
+				views.py
+				class OrderView(View):
+					def get(self,request,*args,**kwargs):
+						return HttpResponse('获取订单')
+
+					def post(self,request,*args,**kwargs):
+						return HttpResponse('提交订单')
+
+					def put(self,request,*args,**kwargs):
+						return HttpResponse('更新订单')
+
+					def delete(self,request,*args,**kwargs):
+						return HttpResponse('删除订单')
+				
+				
+			2.API规范
+				状态码和code
+					    def get(self,request,*args,**kwargs):
+							ret={
+								'code':1000,
+								'msg':'aaa'
+							}
+							return HttpResponse(json.dumps(ret),status=201)
+				数据访问和返回:
+						GET /order/返回资源对象的列表（数组）
+						GET /order/1/返回单个资源对象
+						POST /order/1/返回新生成的资源对象
+						PUT /collection/resource：返回完整的资源对象
+						PATCH /collection/resource：返回完整的资源对象
+						DELETE /collection/resource：返回一个空文档
+						
+				面试题:
+					对于restful api 规范的认识
+						本质上是一种规范，在URL上体现一些对API的操作
+						
+			3.django rest framework
+				class APIView(View):
+					pass
+					
+				class OrderView(APIView):
+					    def get(self,request,*args,**kwargs):
+							ret={
+								'code':1000,
+								'msg':'aaa'
+							}
+							return HttpResponse(json.dumps(ret),status=201)
+
+						def post(self,request,*args,**kwargs):
+							return HttpResponse('提交Great')
+
+						def put(self,request,*args,**kwargs):
+							return HttpResponse('更新Great')
+
+						def delete(self,request,*args,**kwargs):
+							return HttpResponse('删除Great')
+		
+面试题：
+	1.中间件
+	2.csrf
+	3.CBV
+	4.规范
+		-10条规范
+		-认识
+	5.djangoresytframework
+		-如何验证（基于数据库实现用户认证
+		-源码流程（面向对象编程基础)
+		
+		
+		
+		
+内容回顾
+	1.中间件
+		process_request
+		process_response
+		process_view
+		process_exception
+		process_render_template
+		
+	2.csrf原理
+		
+	
+	
+	
+今日内容：
+	1.认证
+	2.权限
+	3.节流（访问频率控制）
+	4.版本

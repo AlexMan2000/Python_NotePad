@@ -1,0 +1,30 @@
+class Print:
+	def __init__(self,name,gender='male',age):
+		self.name=name
+        self.gender=gender
+        self.age=age
+		
+	def kc(self):
+		data='%s,性别:%s,今年%s岁,喜欢上山砍柴'%(self.name,self.gender,self.age)
+        print(data)
+    
+    
+class FileHandler:
+    def __init__(self,file_path
+        self.n1=file_path
+        self.f=open(self.n1,'r')
+    
+    def read_first(self):
+        text=self.f.read()
+        rows=self.f
+        for i in rows:
+            print(i)
+    
+    def read__last(self):
+    
+    
+    def read_second(self):
+
+obj=FileHandler('路径')
+obj.read_first()
+obj.close()

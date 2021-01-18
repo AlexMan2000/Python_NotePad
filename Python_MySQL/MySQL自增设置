@@ -1,0 +1,27 @@
+对于自增:
+	desc t1; 查看表格如何创建
+	
+	show create table t1;
+	
+	show create table t1 \G;
+	
+	alter table t1 auto_increment=2;#让下一条自增数据从3开始
+	
+	MYSQL：自增步长
+		基于会话级别:(会话中设置步长)
+		会话：一次登录就是一个会话
+			show session variable like 'auto_inc%'; 查看当前会话全局变量
+			set session auto_increment_increment=2; 设置会话级别步长
+			set session auto_increment_offset=10; 设置会话起始值
+		基于全局级别:
+			show global variable like 'auto_inc%'; 查看全局变量
+			set global auto_increment_increment=2; 设置全局级别步长
+			set global auto_increment_offset=10; 设置全局起始值
+	
+	SQLServer:自增步长:
+		基础表级别:
+		
+		
+		
+    
+			

@@ -1,0 +1,32 @@
+day3
+网络请求
+login:function(){
+      console.log(this.data.phone,this.data.code);
+      //登录校验功能,发送请求
+      wx.request({
+        url: 'http://127.0.0.1:8000/api/login/',
+        data: {phone:this.data.phone,code:this.data.code},
+        //dataType: dataType, 返回的数据类型
+        method: 'POST',
+        //responseType: responseType, 返回的文本格式,没大用
+        success: function(res){
+          console.log(res);
+        }
+      })
+    }
+
+在使用wx.request等有网络请求的API时，需要遵循:
+	-网络地址https
+	-后台设置,规定好只能访问某几个页面
+	
+本地测试:
+	api 
+		创建虚拟环境
+		  django == 1.11.7
+		  drf
+		项目API
+		  login
+		  message
+		  
+		
+	 

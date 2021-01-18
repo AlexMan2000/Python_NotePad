@@ -1,0 +1,304 @@
+Ajax概述
+    定义: AJAX，Asynchronous JavaScript and XML (异步的JavaScript和XML)，一种创建交互式网页应用的网页开发技术方案。
+    理解:
+        -基于Ajax的向后台发文本请求(jQuery实现)
+        
+        
+			1. 原生Ajax, XMLHttpRequest
+				<h1>首页</h1>
+				<input type = "text" id = "i1">
+				+
+				<input type = "text" id = "i2">
+				=
+				<input type = "text" id = "i3">
+				<input type = "button" id = "btn1" value = "jQuery Ajax" onclick = "add1()"/>
+				<input type = "button" id = "btn2" value = "原生 Ajax" onclick = "add2()"/>
+
+				-GET请求
+					var xhr = new XMLHttpRequest();
+						xhr.open('GET','/app01/add2/?i1=12&i2=19'); //默认不写就是异步发送请求
+						xhr.send(); //真正发送请求,GET不用给请求体中放数据，get传参在请求头中就可获取
+						xhr.onreadystatechange = function(){
+							if (xhr.readyState === 4){ //相当于jQuery当中的回调函数success
+								alert(xhr.responseText);
+
+							}
+					};
+				-POST请求
+					var xhr = new XMLHttpRequest();
+					xhr.onreadystatechange = function(){
+							if (xhr.readyState === 4){
+								alert(xhr.responseText);
+
+							 }
+							 xhr.open('POST','/app01/add2/'); //默认不写就是异步发送请求
+							 xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded');//设置请求头让服务器根据对应格式解析
+							 xhr.send('i1=12&i2=19'); //真正发送请求体数据,POST要给请求体中放数据，GET传参在请求头中就可获取
+					
+							};
+
+						
+				
+			
+			2.jQuery Ajax,内部基于"原生Ajax"(性能比较底下,手机访问浪费流量)
+				<h1>首页</h1>
+				<input type = "text" id = "i1">
+				+
+				<input type = "text" id = "i2">
+					 =
+				<input type = "text" id = "i3">
+				<input type = "button" id = "btn1" value = "jQuery Ajax" onclick = "add1()"/>
+				<input type = "button" id = "btn2" value = "原生 Ajax" onclick = "add2()"/>
+
+				$.ajax({
+				url:'/app01/add1/',
+				type:'post',
+				data:{'i1':$('#i1').val(),
+						'i2':$('#i2').val()},
+				success:function(arg){//回调函数
+					$('#i3').val(arg);
+				}
+			})
+			
+			
+			3.伪Ajax,非XMLHttpResponse,利用html的iframe来实现
+			
+				-iframe标签，不刷新发送http请求(跳转网页)
+					<div>
+						<input type = "text" id = "txt1"/>
+						<input type="button" value = "查看" onclick="changeSrc();">
+						<iframe id='ifr' style = "width:1000px;height:2000px;" src = "http://www.autohome.com.cn"></iframe>
+					</div>
+					
+					<script>
+						function changeSrc(){
+							var inp = document.getElementById('txt1').value; //获取文本框的输入
+							console.log(inp);
+							document.getElementById('ifr').src = inp;
+						}
+					</script>
+				
+				-iframe和<form>...</form>结合模仿ajax(需要中间件设置# 'django.middleware.clickjacking.XFrameOptionsMiddleware',)
+					<body>
+						<form id = 'f1' method = 'POST' action = '/app01/fake_ajax/' target = "ifr">
+							<iframe id='ifr' name = "ifr" style = "display:none" ></iframe>
+							<input type = "text" name = "user"/>
+							<input type = "submit" value = "提交">
+							<a onclick="submitForm();"></a>
+						</form>
+
+					<script>
+						function loadIframe(){
+							var content = document.getElementById('ifr').contentWindow.document.body.innerText;
+							alert(content)
+						}
+
+						function submitForm(){
+							document.getElementById('f1').submit();
+							document.getElementById('ifr').onload = loadIframe; //通过这种方式绑定不能加括号,onload相当于回调函数,有返回值了开始加载
+						}
+		
+					</script>
+					</body>
+					
+					//iframe得到的返回值会存放在#document文件中
+					document.getElementById('ifr').contentWindow //获取document对象的数据
+					
+					document.getElementById('ifr').contentWindow.document.body //拿到渲染内容
+					
+					document.getElementById('ifr').contentWindow.document.body.innerText;//获取内部文本
+					
+				
+		-基于Ajax上传文件(都依赖formData对象,这个对象对于IE10以前的版本兼容性不好)
+			1. 原生XMLHttpRequest
+				<h1>原生Ajax上传文件</h1>
+				<input type = "file" id = "i1">
+				<a onclick = "upload1()">ajax上传</a>
+				<div id = "container1"></div>
+
+				<script>
+					function upload1(){
+						var formData = new FormData();//能穿字符串也能传文件
+						formData.append('k1','v1');//发送字符串对象
+						var fileobj = document.getElementById("i1").files[0];
+						formData.append('fafafa',fileobj);//发送文件对象
+						var xhr = new XMLHttpRequest();
+						xhr.onreadystatechange = function(){
+						if (xhr.readyState === 4){
+							var file_path = xhr.responseText;
+							alert(file_path);
+							var tag = document.createElement('img');
+							tag.src = "/"+file_path;
+							document.getElementById("container1").append(tag);
+
+						 }
+						};
+
+					xhr.open('POST','/app01/upload/'); //默认不写就是异步发送请求
+					 //不用写明格式，浏览器自动识别文件格式
+					xhr.send(formData); //真正发送请求,GET不用给请求体中放数据，get传参在请求头中就可获取
+					}
+				</script>
+				
+				
+				
+			2.jQuery实现
+				DOM对象和jQuery对象的互相转换
+					-JQuery转DOM
+						$('#i2')[0]
+					
+					-DOM转jQuery
+						$(document.getElementById("i1"))
+						
+				<h1>jQuery Ajax上传文件</h1>
+				<input type = "file" id = "i2"/>
+				<a onclick="upload2();">jquery上传</a>
+				<div id = "container2"></div>
+							
+				var formData = new FormData();//能穿字符串也能传文件
+					formData.append('k1','v1');//发送字符串对象
+					formData.append('fafafa',$("#i2")[0].files[0]);//发送文件对象
+					$.ajax({
+						url:'/app01/upload/',
+						type:'POST',
+						data:formData,
+						contentType:false, //不让原生的ajax帮我们做处理
+						processData:false,
+						success:function(arg){
+							var tag = document.createElement("img");
+							tag.src = "/"+arg;
+							$("#container2").append(tag);
+						}
+
+						}
+					)
+						
+
+			2. iframe伪造ajax方式(不收浏览器版本限制)
+				
+				<h1>iframe 伪造Ajax上传文件</h1>
+				//用form表单提交文件就得加上enctype
+				<form id = 'f1' method = 'POST' action = '/app01/upload/' target = "ifr" enctype="multipart/form-data">
+					<iframe id='ifr' name = "ifr" ></iframe>
+					<input type = "file" name = "fafafa">
+					<a onclick="upload3();">伪ajax提交</a>
+				</form>
+				
+				function loadIframe(){
+					var content = document.getElementById('ifr').contentWindow.document.body.innerText;
+					
+					var tag = document.createElement("img");
+					tag.src = "/"+content;
+					$("#container3").append(tag);
+
+				}
+
+				function upload3(){
+					document.getElementById('f1').submit();//向action提交表单,target表示让iframe接受返回值,页面不刷新
+					document.getElementById('ifr').onload = loadIframe; //回调函数
+
+				}
+
+	Ajax部分总结:
+		1. 上传文件
+			推荐用伪造
+		2.	上传普通数据
+			推荐jQuery
+			XMLHttpRequest
+			iframe伪造也可以
+			
+		3.  华丽的上传按钮背后可能是一个iframe提交方式
+        
+		
+		
+JSONP概述
+	一种技巧
+	Ajax存在问题:
+		访问自己本地域名url
+		访问别的域名url会报错
+		
+		数据发给了服务器,服务器也发数据回来了，但是浏览器拒绝接受数据了
+		
+		浏览器限制: 
+			同源策略(把ajax操作禁止了),
+				-禁止:Ajax跨域发送请求时，再回来时浏览器拒绝接受
+				-允许:<script src = "url"></script>,带有src一般都不禁止
+				
+			开发需求: 向其他网站发Http请求
+				-浏览器直接发送请求(jQuery Ajax)[考虑同源策略]
+				-浏览器-->服务端-->发送请求
+				
+			
+		
+		JSONP：解决了ajax跨域, 钻空子(没有用ajax)
+			0.<script src = '/static/common.js></script>
+				//这句话会将common.js里的所有函数加载进内存，然后在当前的html钟就可以调用了
+				common.js
+					function list(arg){
+						console.log(arg);
+					}
+					
+					
+			1.发送:
+				把数据拼接成script放在html
+				<script src = 'http://www.jxntv.cn/data/jmd-jxtv2.html?callback=list&_=1454376870403'></script>
+				//如果这个链接会返回list(网站数据);
+				//相当于在页面上加了list(参数)一句, 调用了之前的函数list并传入了参数.
+				
+			
+			2.要求返回值的格式必须和本地的函数名对应
+				-客户端
+					-URL?callback=xxxx
+					<script>
+						function xxxx(arg){}
+					</script>
+					
+				-服务端
+					-获取 funcname = request.GET.get('callback')
+					-返回: HttpReponse(json.dumps(字符串funcname(....内容)))
+				返回的HttpResponse(json.dumps(list))
+			
+			
+			3.创建方法：
+				-自己动态创建tag
+					//前端
+					function add3(){
+					  var tag = document.createElement('script');
+					  tag.src = "http://127.0.0.1:8000/app01/jsonp/";
+					  tag.type = "text/javascript";
+					  console.log(tag);
+					 document.head.appendChild(tag);
+					}
+				
+				-jQuery
+					$.ajax({
+						url: "http://127.0.0.1:8000/app01/jsonp/";
+						type:'GET', //去掉也可以,因为加不加，写POST或者GET最终都会转化成GET请求
+						dataType: 'JSONP'
+						jsonp:'funcname',
+						jsonpCallback:'bbb',
+					})
+					
+				-其他
+					-只能发get请求
+					-约定
+					
+				JSONP是一种方式, 目的是解决跨域问题(每种语言都有的性质)
+
+
+CORS跨域
+	function getUsers(){
+		$.ajax({
+			url:'http://www.s4.com:8001/new_users/'
+			type:'GET',
+			success:function(arg){
+				console.log(arg);
+			}
+		})
+	}
+		
+		
+		
+		
+     
+        

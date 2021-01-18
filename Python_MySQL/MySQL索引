@@ -1,0 +1,96 @@
+1.索引
+	作用:
+		-约束
+		-加速查找
+	索引:
+		-普通索引:加速查找
+		-主键索引:加速查找+不能为空+唯一
+		-唯一索引:加速查找+不能重复
+		-联合索引(联合唯一)
+			-联合主键索引
+			-联合唯一索引
+			-联合普通索引
+	加速查找:
+		select * from tb where name='as';
+		select * from tb where id=999;
+		
+	普通索引:
+		create index 索引名称 on 表名 (列名); 生成索引，方便以后加速查找
+		drop index 索引名称 on 表名(列名);		
+	唯一索引:
+		create unique index 索引名称 on 表名（列名）;
+	
+	主键索引:
+		alter table 表名 add primary key(列名);
+		
+	联合索引:
+		create index 索引名称 on 表名 (列名1,列名2);
+		drop index 索引名称 on 表名;
+		
+		create index index_1 on score (name,email);
+		-最左前缀匹配
+			select * from tb where name='as';
+			select * from tb where name='as' and email='a';
+			select * from tb where email='as';不会走索引
+		
+	覆盖索引:
+		在索引文件中拿到数据
+		
+	索引合并:
+		把多个单列索引合并使用 select * from tb where email='as' and id=999;
+		
+	组合索引:(联合索引)效率大于索引合并
+		create index 索引名称 on 表名 (列名1,列名2);
+		drop index 索引名称 on 表名;
+		
+		create index index_1 on score (name,email);
+		-最左前缀匹配
+			select * from tb where name='as';
+			select * from tb where name='as' and email='a';
+			select * from tb where email='as';不会走索引
+		
+	索引种类：
+		hash索引
+		btree索引
+		
+	建立索引:
+		-a.额外的文件保存特殊的数据结构
+		-b.查询快，增删改慢
+		-c.命中索引:
+			要用了才能实现加速查找特性
+			select * from tb where email='as'; 可命中
+			select * from tb where email like 'as'; 无法命中
+			
+	局部索引:
+		create index index_1 on tb(title(6)) 取title列的字符串的前6个字符串作为索引
+		
+		
+2.时间
+	执行计划:
+		id email 
+		慢:
+			select * from tb where name='alex';
+			explain select * from tb where name='alex';
+			type:ALL(全表扫描)
+		快:
+			select * from tb where email='alex';
+			type:ref(表明走索引)
+		type:const主键，最快的
+	慢日志:
+		-内存
+			show variables like '%query%'
+			set global 变量名=值
+			
+		-配置文件
+			mysqld --default-file-'路径' 创建配置文件
+			slow_query_log=ON
+			slow_query_log_file='路径'
+3.limit分页
+	见网站
+	
+	
+	
+	
+	
+	
+	

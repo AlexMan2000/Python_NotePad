@@ -1,0 +1,126 @@
+Javascript
+	正则，字符串的三个方法
+DOM
+	查找:
+		直接查找
+		间接查找
+		--getElementById 
+		--getElementByTagName
+	操作:
+		值:
+			innerText
+			innerHtml
+			value
+		class:
+			className
+			classList.add
+			classList.remove
+		样式：
+			<input type='text' style='color:red;font-size:40px;' />
+			tag=...
+			tag.style.color='red';
+			tag.style.fontSize='40px';
+		属性:
+			<input id='i1' name='n1' type='text' style='color:red;font-size:40px' />
+			var t=document.getElementById('i1')
+			t.getAttribute('name'); #n1
+			t.setAttribute('name':'123'); #修改
+			t.removeAttribute('name') 
+		是非判断:
+			t.checked=true; 修改自定义属性
+		创建标签:
+			var tag=document.createElement('a')
+			tag.innerText='aa';设置内部文本
+			tag.className='a1';设置属性名称
+			tag.href='www...'; 设置链接位置
+		操作标签:
+			字符串形式:
+			var str='<input type='text' />';
+			tag.insertAdjacentHTML('beforeEnd',str); 添加字符串形式的标签，当做标签插入
+			tag.insertAdjacentHTML('beforeEnd',str); 添加字符串形式的标签, 当做纯文本插入
+				#参数只能是BeforeEnd(内部最后), AfterEnd(外部后面紧挨着)
+				,afterBegin(内部的第一个),beforeBegin(标签之前紧挨着);
+				
+			对象形式:
+			var obj=document.createElement('a')
+			tag.appendChild(obj)加在子类的最后面
+			tag.insertBefore(obj,tag.children[1])
+			tag.insertAdjacentElement('afterBegin',document.createElement('p')); 添加对象形式
+				#参数只能是BeforeEnd(内部最后), AfterEnd(外部后面紧挨着)
+				,afterBegin(内部的第一个),beforeBegin(标签之前紧挨着);
+		点赞:
+			创建标签:定时器
+			1.this,当前出发事件的标签
+			2.createElement
+			3.appendChild
+			4.setInterval 创建定时器
+				clearInterval 删除定时器
+			5.removeChild(子标签) 删除子标签
+		
+		定时器:
+		setTimeout(function(){},5000) #5秒后执行仅一次
+		clearTimeout()
+		
+		重定向:
+			location.href; 获取当前url.
+			location.href='http://www.baidu.com." #直接跳转至该网站
+			location.reload()重新加载
+			
+		事件:
+			1.this 当前除法事件的标签
+			2.全局事件绑定 window.onkeydown=function(){} #打开网页随便点一个键，便执行
+			3.event 包含书简相关内容
+			4.默认事件
+					自定义优先居多;
+					
+					
+JQuery:
+	模块,Dom和JavaScript,
+	查找:
+		选择器:
+			id选择器
+			标签选择器
+			类选择器
+			组合选择器
+			层级 #i1 .c1
+			属性选择器:
+				div[name='alex']{}
+				input[type='text']---$(":text")
+				
+			$('input:eq(1),#i1 .item')
+		筛选器
+			$('#i1').find('.item') 找id是i1下的所有属性是item的标签
+			$('#i1').eq(1) #找索引
+			
+	操作:
+		CSS
+			$('#i1').css('fontsoze','18px')第一个参数是获取，第二个参数是设置
+		属性操作
+			$('#i1').html() #获取html内容
+			$('#i1').html('<span>123</span')  #设置html内容
+			没有参数是获取，有参数是设置
+			text()
+		文本操作
+			
+	事件:
+		-优化
+		1.如何使用jQuery绑定 
+		2.当文档加载完毕后，自动执行
+			$(function(){
+			...
+			});
+		3.延迟绑定:
+			
+	扩展:
+		自定义方法
+		$.login
+		form 表单验证
+		jQuey扩展方法:
+			
+	Ajax:
+		暗中提交数据
+		
+	
+		
+			
+			

@@ -1,0 +1,52 @@
+Pandas 数据聚合与分组
+数据拼接
+1. append方法
+	暴力拼接 df1.append(df2) 直接将df2的所有数据尾拼接到df1后面，但要保证行索引相同
+
+2. concat方法（可以沿着行或者列拼接）
+	pd.concat(df1,df2,axis=0/1)
+	暴力拼接，行列索引个数可以不相同，换句话说，行列索引不用对齐
+	axis = 0时，列索引选取的是df1的列索引，df2若有与df1不同的列索引，合并时用nan值填补
+	axis = 1时，类似
+
+数据分组
+1. groupby函数（非常重要）
+	这里有一些注意事项
+		df[column] 返回的是pdSeries
+		df[[column]]返回的是dataframe
+	df.groupby(['column1']).sum()['column2']
+	df.groupby('column1').sum()['colum2']
+	
+	
+2. groupby函数的辅助，agg
+	#会添加双列索引
+	df.groupby('column').agg({'col2':{'mean','max','min}})
+	#agg会为col2这列添加单列索引
+	df.groupby('column').'col2'.agg(['mean','max','min'])
+	#没有列索引
+	df.groupby('column').'col2'.agg('mean')
+	#对比,这样会添加单索引
+	df.groupby('column').'col2'.agg(['mean'])
+	
+	
+3. value_counts函数
+	#返回pdSeries，统计某一列中不同种类数据的频数，括号中填写1,则返回频率
+	tmp = df.column.value_counts()
+	
+	#series与series相除,前提是行索引相同
+	
+	#df与df相除
+	df1为双索引groupby
+	#level指的是按照df1的某一层级的数据的总和进行除法，元素级相除.
+	#对齐时找不到元素默认用fill_value == NAN,相除元素的列索引必须一致
+	df1.div(df2,level='') 
+	
+4.双索引
+	df.groupby['column1','column2'].size() #返回每一类中元素的个数
+	
+	
+	
+	
+	
+	
+	

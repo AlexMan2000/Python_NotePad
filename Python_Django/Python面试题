@@ -1,0 +1,91 @@
+内容回顾：
+	1.谈谈面向对象？
+		-封装：函数和属性封装到一个类中，把数据封装到对象中
+		什么时候用：自定义分页的时候，通过构造方法把数据封装到对象当中
+					self.dispatch 函数把request封装到Request
+		-继承：多继承，把多个类中相同的属性和方法提取到一个基类中，只实现一次，让子类和
+		派生类去继承它。APIView。
+		-多态：鸭子模型：会呱呱叫就是鸭子，也是鹦鹉	
+			class WX:
+				def send():
+					pass
+				
+			class Email:
+				def send():
+					pass
+			
+			class Mag:
+				def send():
+					pass 
+					
+			def func(arg):
+				arg.send()
+			
+			obj=Email()
+			func(obj)
+			只要能send都允许作为参数传给func
+	
+	2.Django的声明周期(FBV)
+		请求进来先经过wsgi,wsgi又是一套协议，规范的是wsgi和django的应用程序之间的一个规范约束
+		然后经过中间件，然后url路由分发，之后执行视图函数，
+		最后response函数返回
+		
+		wsgi:是协议，web服务网关接口，web服务器和web应用之间做上一个协议规范。
+		不属于django,与django无直接关系，而是django利用wsgi做了一个类似于websocket的请求，
+		wsgiref: 实现了wsgi协议的一个模块。模块本质就是一个socket服务端。（Django默认的）
+		werkzeug: 实现了wsgi协议的一个模块。模块本质就是一个socket服务端。（Flask框架）
+		tornado: 实现了wsgi协议的一个模块。模块本质就是一个socket服务端。（Flask框架）
+		uwsgi: 实现了wsgi协议的一个模块。模块本质就是一个socket服务端。
+		
+		
+	3.Django的声明周期(rest framework/CBV)
+		请求进来先经过wsgi，然后经过中间件，之后执行视图函数中的dispatch函数，
+		然后封装Request,认证，权限，节流，然后利用反射找到类里面对应请求类型的对应的方法，
+		然后返回。
+		
+		
+
+	4.中间件&装饰器（中间件认证前后端不分离）
+		对所有函数都加装饰器，就用中间件。统一所有的操作用中间件来写，对某一个特定函数就用装饰器来写。
+		用中间件做过什么：基于角色的管理，基于角色的权限控制。csrf_token
+		csrf_token原理：访问服务器网站，服务器给客户端配发token，下次来的时候带上这个token。
+		session: token作为key, value就是一系列信息，保存在服务端。
+		-适用于所有批量请求做操作
+			场景：
+				-基于角色的权限控制。
+				-用户认证
+				-csrf_token,原理
+				-session，原理
+				-黑名单，日志的记录
+				
+	5.rest 框架原理(前后端分离）
+		认证流程
+			-方法
+				-authenticate (具体认证流程)
+					-返回值
+						-None,异常,元组
+				-authrnticate_header
+		权限
+			-方法
+				-has_permission
+					-返回值
+						-True,False
+		节流（匿名IP，登录用户是姓名）
+			-方法
+				-allow_request
+					把用户的唯一标识（匿名IP，登录用户是姓名）放到cache缓存
+					每个人的访问记录（时间）做成一个列表，每次访问之后根据时间最后一次剔除掉，
+					然后判断在某一个特定的时间段内访问的次数，并加以限制
+				-wait
+			class VisitThrottle(SimpleRateThrottle):
+				scope='luffy'
+				def get_cache_key(self, request, view):
+					#匿名用户获取IP并返回
+					return self.get_ident(request)
+
+			class UserThrottle(SimpleRateThrottle):
+				scope='luffyuser'
+
+				def get_cache_key(self, request, view):
+					#登录用户获取用户名信息
+					return request.user.username

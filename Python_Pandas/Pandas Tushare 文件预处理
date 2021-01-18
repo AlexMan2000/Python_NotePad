@@ -1,0 +1,32 @@
+#Pandas
+#删除指定列
+df.drop(['列名'],inplace=True)
+
+
+#删除指定行
+df.drop([0:4],inplace=True)
+
+
+#日期格式修改
+string=pd.to_datetime(df['trade_date'],format='%Y%m%d') #传入的是什么类型，最终返回的就是什么类型
+datetime=[i.strftime('%y-%m-%d') for i in string]  #返回列表，每个元素都是字符串类型
+
+
+#新增列
+df['timestamp']=datetime
+
+  
+#设置timestamp这一列为新的索引列，且不保留该列
+df.set_index(df['timestamp'],inplace=True,drop=True)
+
+
+#设置新的索引列
+df.reindex(['a','b'])#相当于取了a,b两个行索引作为索引,在创建和索引中有更详细的讲解
+
+
+#导入CSV文件
+df.to_csv(r'C:\Users\DELL\Desktop\Python Work\金融量化分析\600479日期格式改良版.CSV')
+
+
+#为df设置列索引名称
+df.columns = [] #列表中填写列索引名称

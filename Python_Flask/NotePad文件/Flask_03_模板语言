@@ -1,0 +1,56 @@
+模板语言
+    -所有的html文件都放在templates文件夹内
+        源码默认会读取这个文件夹
+            template_folder="templates",
+    -防止XSS注入攻击
+        #后端写法
+            def func():
+                #后端不防止XSS攻击
+                return "<input type = 'text' name = 'user'/>"
+                
+                #后端防止XSS攻击
+                return MarkUp("<input type = 'text' name = 'user'/>")
+            
+            @app.route('/'):
+            def index():
+                return render_template('index.html',function = func)
+                
+                
+        #前端写法
+            {{function()}} #默认防止XSS攻击
+            {{function()|safe}} #不防止XSS攻击
+            
+            
+    -继承与注入
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <title>Title</title>
+        </head>
+        <body>
+            
+            #宏定义,相当于一个函数,函数名是input,input(参数)
+            {% macro input(name, type='text', value='') %}
+                <input type="{{ type }}" name="{{ name }}1" value="{{ value }}">
+                <input type="{{ type }}" name="{{ name }}2" value="{{ value }}">
+                <input type="{{ type }}" name="{{ name }}3" value="{{ value }}">
+                <input type="{{ type }}" name="{{ name }}4" value="{{ value }}">
+            {% endmacro %}
+           
+            #调用函数填充html
+            {{ input('n') }}
+
+
+            #模板的导入
+            {% include 'tp.html' %}
+            
+            
+            #模板的继承
+            {% extends 'tp.html' %}
+
+            <h1>asdf{{ v.k1}}</h1>
+        </body>
+        </html>
+
+        其他

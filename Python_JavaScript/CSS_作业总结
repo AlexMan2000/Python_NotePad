@@ -1,0 +1,89 @@
+作业总结:
+	1.inline-block; 额外有三像素的宽度
+	解决方法:float
+	2.改造标签
+		例如:
+	3.补充:
+	
+HTML：
+	a标签：
+		target,href(url,#i1)
+	img标签:
+		src alt
+	iframe (伪Ajax,上传文件)
+		src
+	form标签:
+		action (地址)
+		method(GET,POST)
+		enctype='multi...'
+		input系列:submit，提交当前form表单
+		          text,
+				  checkbox (默认值指定 checked=checked)
+					name=favor,value=1
+					name=favor,value=2
+					name=favor,value=3
+					favor:[1,2,3]
+		          radio(互斥时name属性要相同,默认选中checked='checked'),
+				  file
+		          password
+				  button:无效果，加函数
+				  reset:重置当前表单信息
+				  
+		select标签(默认值指定,selected='selected')
+		textarea :多行文本输入
+		====>
+			<input value='123'/>
+			<textarea value='请输入文本信息'></textarea>
+			
+CSS
+	存在形式
+		标签属性
+		stylle块
+		css文件里，导入
+		优先级，从标签到文件
+		最优先: color:red !important; 
+		上下的话，下面的优先级高, 要想上面的优先高,就加!important
+		display
+	寻找:
+		标签选择器
+		class选择器
+		ID选择器
+		层级选择器
+		组合选择器
+		属性选择器(自定义属性)
+		.c1[alex='a']{}
+		
+		
+	样式:
+		color:width,height
+		width:百分比，需要在外部指定宽度(就会出现滚动条)
+		background:图片，背景色
+		透明度:
+			opacity:0.6
+			background:rgba(0,0,0,.6)
+		position:
+			relative:需要结合absolute使用
+				absolute 写在relative里面
+			absolute:滚动则不固定
+			fixed
+		    ===>z-index(值越大越靠上) （对话框，遮罩层)
+			
+		float:
+			网站:
+				css:
+					.clearfix:after{
+						content:'.';
+						clear:both;
+						display: block;
+						visibility: hidden;
+						height:0;
+						}
+						
+				布局:
+					主站
+					
+		
+		          
+		
+		
+		

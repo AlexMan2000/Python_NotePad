@@ -1,0 +1,11 @@
+git init 在当前文件夹下初始化git
+git status 检测当前文件夹下的文件状态
+git add 选中文件并开始分布式管理
+git commit -m ‘v1' 生成版本
+三种文件状态的变化:
+1.红色:新增的或修改了原来的老文件  ->git add ./git add 文件名
+2.绿色:git 已经管理起来 --->git commit -m 'v1'(描述信息，生成版本)
+
+提交到服务器
+git remote add origin ...(服务器URL)
+git push -u origin master

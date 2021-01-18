@@ -1,0 +1,35 @@
+Pandas可视化
+1. 画出折线图
+	df.plot(title = '',label = '') #这里label用于legend显示
+	plt.plot(df.index,df[某一列])
+	plt.xticks()
+	plt.yticks()
+	plt.xlabel('')
+	plt.ylabel('')
+	plt.legend()
+	
+2. 画出柱状图
+	pdSeries.plot(kind = 'bar')
+	plt.bar()
+	
+3.画出频率直方图
+	plt.hist(pdSeries,bins = np.arange())
+	plt.xlim()
+	
+4.画出饼图
+	dataset1 = (df['Sex'] == 'male').sum()
+	dataset2 = (df['Sex'] == 'female').sum()
+	proportions = [dataset1,dataset2] #得到两个值
+	plt.pie(proportions,
+			labels = ['Males','Females'],
+			shadow = False,
+			colors = ['blue','red'],
+			explode = (0.1,0), #一般括号中第二个值为零
+			startangle = 90,
+			autopct = '%.3f%%'
+			)
+			
+5.画出散点图
+	#s是散点的尺寸，column3必须是数值型数据类型, column4是离散型数值类型
+	plt.scatter(df.column1,df.column2,s = df.column3,c = df.column4) 
+	

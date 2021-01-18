@@ -1,0 +1,208 @@
+Python_drf 序列化
+
+		
+		
+今日内容概要:
+	1.版本
+	2.解析器
+		让后端知道发过来的是json数据
+	3.序列化
+		-请求数据进行校验
+		-QuerySet进行序列化处理
+	4.分页
+	5.路由系统
+	6.视图 
+	7.渲染器
+	
+	
+	
+内容详细:
+	1.版本
+		(1).URL中通过get传递参数
+		自定义:
+			class ParamVersion(object):
+				def determine_version(self,request,*args,**kwargs):
+					version=request.query_params.get('version')
+					return version
+
+
+			class UsersView(APIView):
+
+				versioning_class =ParamVersion
+				def get(self,request,*args,**kwargs):
+
+					#version=request.query_params.get('version')
+					# version=request._request.GET.get('version')
+					# print(version)
+
+					print(request.version)
+
+					return HttpResponse('用户列表')
+		(2).在URL路径中传参(推荐，正则)
+		(3).加配置文件,获取版本
+			REST_FRAMEWORK={
+				'DEFAULT_VERSIONING_CLASS':'rest_framework.versioning.URLPathVersioning',
+				'DEFAULT_VERSION':'v1',
+				'ALLOWED_VERSIONS':['v1','v2'],
+				#只能通过?version=v*传参
+				'VERSION_PARAM':'version',
+				}
+				
+			class UsersView(APIView):
+
+				# versioning_class =ParamVersion
+				# versioning_class = QueryParameterVersioning
+				#全局引用
+				# versioning_class = URLPathVersioning
+				def get(self,request,*args,**kwargs):
+
+					#version=request.query_params.get('version')
+					# version=request._request.GET.get('version')
+					# print(version)
+
+					print(request.version)
+
+					return HttpResponse('用户列表')
+
+	2.解析器
+		前戏：django:request.POST/request.body
+			-Content-Type == 'multipart/form-data': 是上传文件，表单提交，可以用request.POST访问数据
+			1.请求头中的content-type的要求：
+				-Content-Type == 'application/x-www-form-urlencoded'
+			2.数据格式要求:
+				name=aaa&age=25&gender=male
+			 request.POST才有值(通过request.body中解析的数据).
+			如:
+				(1). form 表单提交 
+					-Content-Type == 'application/x-www-form-urlencoded'
+					-数据格式:name=aaa&age=25&gender=male
+					<form method...>
+						input...
+					
+					</form>
+				(2). ajax提交 发送python格式字典数据(默认)
+					-Content-Type == 'application/x-www-form-urlencoded'
+					$.ajax({
+						url:...
+						type:POST
+						data:{name:alex,age:25} -数据格式django内部转化:name=aaa&age=25&gender=male
+					})
+					request.POST里有值
+					
+					
+					ajax提交,发送python字典格式数据(自定义)
+					$.ajax({
+						url:...,
+						type:POST,
+						header:{'Content-Type':'application/json'},
+						data:{name:alex,age:25} -数据格式django内部转化:name=aaa&age=25&gender=male
+					})
+					request.POST没有值，request.body里有值,request.data访问
+					
+					
+					ajax提交，发送JSON格式数据(自定义)
+					$.ajax({
+						url:...,
+						type:POST,
+						header:{'Content-Type':'application/json'},
+						data:JSON.stringfy({name:alex,age:25}) -数据格式也不满足，django内部不再转化数据格式 {name:alex,age:18}
+					})
+					request.POST没有值，request.body里有值,request.data访问
+					#json.loads(request.body) 将字符串转换成字典 
+						
+			总结:
+				全局配置即可，有特殊需求就特殊对待
+				源码流程&本质：
+					根据content-type的头来控制。
+					本质:
+						请求头:
+						状态码:
+						请求方法:
+					源码流程:
+						-dispatch: request封装
+						-request.data
+						
+						
+	3.序列化
+		
+		部分总结:
+			1.写类,两种继承方式
+				class UserInfoSerializer(serializers.Serializer):
+					#未指定字段source名称则必须与数据库字段名称一一对应
+					username = serializers.CharField()
+					password = serializers.CharField()
+					#这里即便数据库中的usertype是IntegerField,这里使用CharField也能够渠道对应的数字的字符串类型数据
+					userlevel_int = serializers.CharField(source='user_type')#每一行对象row.user_type
+					userlevel_name = serializers.CharField(source='get_user_type_display')
+					gp=serializers.CharField(source='group.title') #有更多foreign key就可以一直点下去
+
+					#choices和foreign key 是可以通过source方法来精细地取到具体的值的，但是ManyToMany不行
+					rls=serializers.SerializerMethodField() #自定义函数显示
+
+					def get_rls(self,row):
+						#返回什么页面上就显示什么,获取的是一个用户对应的所有的角色的对象列表,row就是一个用户
+						roles_obj_list=row.roles.all()
+
+						ret=[]
+
+						for item in roles_obj_list:
+							ret.append({'id':item.id,'title':item.title})
+						return ret
+
+
+				class UserInfoSerializer2(serializers.ModelSerializer):
+					userlevel_int2 = serializers.CharField(source='user_type')
+					rls2 = serializers.SerializerMethodField()  # 自定义函数显示
+					#只能完成基本操作
+					class Meta:
+						model=models.UserInfo
+						# field="__all__"
+						fields=['id','username','password','userlevel_int2','rls2','group']
+
+					def get_rls2(self, row):
+						# 返回什么页面上就显示什么,获取的是一个用户对应的所有的角色的对象列表
+						roles_obj_list = row.roles.all()
+
+						ret = []
+
+						for item in roles_obj_list:
+							ret.append({'id': item.id, 'title': item.title})
+						return ret
+			2.字段
+				(1).加source:userlevel_int = serializers.CharField(source='user_type')
+				(2).加methodfield自定义方法:
+					rls=serializers.SerializerMethodField() 
+					def get_rls(self,row):
+						#返回什么页面上就显示什么,获取的是一个用户对应的所有的角色的对象列表,row就是一个用户
+						roles_obj_list=row.roles.all()
+
+						ret=[]
+
+						for item in roles_obj_list:
+							ret.append({'id':item.id,'title':item.title})
+						return ret
+				(3).自定义类
+					class MyField(serializers.CharField):
+
+						def to_representation(self, value):
+							#从数据库取到的对应数据value,比如:Arthur
+							print(value)
+							#返回什么页面上就显示什么
+							return'aaa'
+						
+					class UserInfoSerializer2(serializers.ModelSerializer):
+						userlevel_int2 = serializers.CharField(source='user_type')
+						rls2 = serializers.SerializerMethodField()  # 自定义函数显示
+						a1=MyField(source='username')
+											
+						
+						
+						
+						
+						
+						
+						
+						
+						
+						
+						

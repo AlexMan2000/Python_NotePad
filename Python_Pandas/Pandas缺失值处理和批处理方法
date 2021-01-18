@@ -1,0 +1,34 @@
+Pandas 缺失值处理
+1. 查看df中是否有缺失值
+    pd.isnull() #返回经过条件判断的boolean数据类型的df
+    pd.isnull.sum() #对每一列的null值进行加总
+    
+2. 设置df中的某些元素为nan
+    df.iloc[10:30,2:3] = np.nan #切片赋值法（重要）
+    
+3. 将nan值替换成有效数据, (sum函数相加时会将nan值认为是0,mean函数也不会将nan值算入分母中)
+    df(.column).fillna(1,inplace = True)
+    
+4. 删除某一列
+    del df['']
+    
+5. 删除含有缺失值的数据行或列
+    df.dropna(axis = 0(行)/1(列),inplace = True)
+    
+6. 重置索引
+    df.reset_index(drop = True)
+    
+7. 删除某几列
+    df.drop(df.columns[[0,1,2]],axis = 1) #注意columns后面括号中的内容，是二维列表，列表中是列的索引
+    
+8  将某一列中的随机索引的元素替换成nan
+    df.alcohol[random] = np.nan #random为列表
+    
+9. 只打印某一列中元素为非nan的数据
+    df[df.column.notnull()][column]
+	
+10. 重命名列索引
+	df.column = [] #列表中填入要改名的列索引
+	df.rename(columns = {0:'',1:'',...}) #指定修改某几个列索引
+	
+    

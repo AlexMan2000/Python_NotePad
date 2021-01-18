@@ -1,0 +1,22 @@
+XSS攻击(跨站脚本攻击)
+	#简介
+		用户评论了这个代码<script>alert(123);</script>
+		服务器将这段代码发送到各个用户的浏览器进行渲染，如果没有防止
+		XSS跨站脚本攻击的措施，就会导致那个用户一评论，其他用户就会弹个窗
+		
+	#django中的反跨站攻击设置
+		#在前端
+			{{temp}} #防护状态(除非已经在后端标记成安全)
+			{{temp|safe}} #取消防护状态
+			
+			
+		#在后端
+			from django.utils.safestring import mark_safe
+			def test(request):
+				temp = "<a href = 'http://www.baidu.com'>haha</a>"
+				temp = mark_safe(temp)
+				
+				return render(request,'test.html',{'temp':temp})
+		
+		
+	#各大网站基本上都会对这种特殊字符进行过滤

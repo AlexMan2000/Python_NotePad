@@ -1,0 +1,425 @@
+1.url对应关系
+	#导入渲染页面必要的方法
+		from django.shortcuts import HttpResponse,render
+		
+	/login/    login
+	#简称视图函数
+	def index(request):
+		#通过request.method == "GET"/"POST"来判断请求类型
+		request.method
+		
+		
+		
+		#通过request.get/request.post来获取前端提交过来的数据
+		request.get  ->请求头的url的问号后面
+		request.post ->请求体
+
+		GET请求-->只有request.GET有值
+		POST请求-->request.GET和request.POST都可能有值
+		
+		
+		
+		#对数据进行处理
+		...
+		
+		
+		#返回Http响应
+		return HttpRsponse(...)
+		
+		
+		#或者返回模板页面
+		#第一个参数固定request,
+		#第二个参数是网页的url,由于之前在配置文件中设置过template文件路径，这里直接填入login.html就行,
+		#django的模板引擎就会自动找到login.html进行渲染
+		
+		#第三个参数是从后端发送给前端页面的数据
+		return render(request,'login.html',{'k1':'v1','k2':[1,2,32,34]})
+		
+		
+		
+	
+		#或者直接跳到外网
+		return redirect('要跳转的网址')
+		
+		
+	
+	
+2.模板引擎中的特殊标记
+    #template模板
+	login.html
+	 {{name}}
+	 
+	def login(request):
+		return render(request,'login.html',{'k1':'v1','k2':[1,2,32,34]在，"k3":{"haha":'aa'}})
+	
+	login.html
+		<h1> {{k1}} </h1> #{{k1}}是v1
+		<h1>{{k2.2}}</h1>  #{{k2}}是[1,2,32,34] k2.数字(从0开始的索引)
+		<h1>{{k3.haha}}</h1> #aa
+		{% for item in k2%}  #Django内部封装的html的循环操作
+			<h1>{{item}}</h1>
+		(%endfor%}
+        
+        
+    #表格的填充(列表里套列表)
+    {% for row in datalist %}
+            <tr>
+                <td>{{ row.0 }}</td>
+                <td>{{ row.1 }}</td>
+                <td>{{ row.2 }}</td>
+                <td>{{ row.3 }}</td>
+                <td>{{ row.4 }}</td>
+                <td>{{ row.5 }}</td>
+                <td>{{ row.6 }}</td>
+                <td>{{ row.7 }}</td>
+                <td>{{ row.8 }}</td>
+                <td>{{ row.9 }}</td>
+                <td>{{ row.10 }}</td>
+                <td>{{ row.11 }}</td>
+                <td>{{ row.12 }}</td>
+                <td>{{ row.13 }}</td>
+                <td>{{ row.14 }}</td>
+            </tr>
+    {% endfor %}
+    
+    
+    #表格的填充(列表里面套字典)
+    datalist = [{'id':'1','name':'haha1','password':123456}
+                ,{'id':'2','name':'haha2','password':1234567}
+                ,{'id':'3','name':'haha3 ','password':12345678}]
+    return render(request,'test.html',{'datalist':datelist})
+    
+    {% for row in datalist %}
+            <tr>
+                <td>{{ row.id }}</td>
+                <td>{{ row.name }}</td>
+                <td>{{ row.password }}</td>
+            </tr>
+        {% endfor %}
+        
+        
+    #模板语言中函数不用加括号就执行
+        return render(request,'test.html',{'userinfo':{'k1':'v1','k2':'v2'}})
+        {% for item in userinfo.keys %}
+            <h6>{{item}}</h6>  #遍历键值
+        {% endfor %}
+        
+        {% for item in userinfo.item %}
+            <h6>{{item}}</h6>   #遍历值
+        {% endfor %}
+        
+        {% for k,v in userinfo.item %}
+            <h6>{{k}}--{{v}}</h6>  #遍历键值
+        {% endfor %}
+        
+        
+    #模板里面的自定义函数
+        -register.filter(最多两个参数，可以用于前端条件判断)
+            1.创建
+                {{item|upper}} #可以转化成大写,upper就是模板函数sample_filter
+                -创建步骤
+                    1.在app目录下创建一个templatetags的package
+                    2.在templatetags目录下创建一个py文件
+                    3.在这个py文件中写上
+                        from django import template
+                        
+                        #变量名必须是register,因为内部会用反射来找到这个变量
+                        register = template.Library()
+                        
+                        #加上一个装饰器
+                        @register.filter
+                        def my_upper(value):
+                            return value.upper()
+                    4.在html模板中最顶部添加一行
+                        {% load tester %}
+                    5.将app注册到settings.py中
+                
+                
+                -传递参数(最多两个形参)
+                    @register.filter
+                    def my_upper(value,arg):
+                        return value+arg
+                      
+                    #第二个变量紧贴着函数后的冒号传入
+                    <h1>{{ name|my_upper:"999" }}</h1> 
+                    
+                    #要想多个参数，只能这样，然后交给后端sample_filter处理
+                    <h1>{{ name|my_upper:"9,9,9" }}</h1>
+                    
+            2.可以用于条件判断
+                @register.filter
+                def my_bool(value):
+                    return True
+                    
+                {% if name|my_bool %}
+                    <h3>真</h3>
+                {%else%}
+                    <h3>假</h3>
+                {%endif%}
+            
+           
+           
+        -register.simple_tag(没有参数限制，不能和if配合使用)
+            -传递参数
+                @register.simple_tag
+                def my_lower(value):
+                    return value.lower()
+                #my_lower空格加单个参数
+                {% my_lower "ALEX" %}
+                
+                
+                @register.simple_tag
+                def my_lower(value,a1,a2,a3):
+                    return value+a1+a2+a3
+
+                #my_lower空格分割多个参数参数
+                {% my_lower "ALEX" "HAHA" "AAA" "ATATA"%}
+            
+           
+    #条件判断
+    {%if 1>2 %}
+    
+    {%else%}
+    
+    {% endif %}
+    
+    
+    #母版(只能导入一次)
+        layout.html
+            <div>
+                {% block xx %}{% endblock %}
+            {% endblock %}
+            </div>
+            
+        当前.html
+            {% extends 'layout.html' %}
+            
+            {% block xx %}
+                <h1>haha</h1> #会替换母版中的{%%}
+            {% endblock %}
+    
+    
+    
+    #include相关用法(导入模板中的部分代码),可以导入多次
+        -后端
+            return render(request,'specialpage.html',{'name':'haha'})
+            
+        -template目录下
+            pub.html
+                <div>
+                    <div class="title">标题:{{name}}</div>  #name会被填充
+                    <div class="content">内容:{{name}}</div>
+                </div>
+        
+        其他.html中注入
+            <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Title</title>
+                </head>
+                <body>
+                    {% include 'pub.html' %}
+                    {% include 'pub.html' %}
+                    {% include 'pub.html' %}
+                    {% include 'pub.html' %}
+                    {% include 'pub.html' %}
+                    {% include 'pub.html' %}
+                </body>
+                </html>
+        
+        
+3.模板语言在Ajax中
+	$.ajax({
+		async:false,
+		url:'/api/v1/SITAnalysis/',
+		method:'post',
+		data:{'domType':dom,'location':'first'},
+		success:function(data){//返回json列表类型
+			$.each(data,function(index,value){
+				Pro_field.push(value[0])
+			}
+			);
+
+			$.each(data,function(index,value){
+				DB_field.push(value[1])
+			}
+			);
+			console.log(data);
+			var res=data;
+			$.each(res,function(index,value){
+				option+="<option value='"+value[0]+"'>"+value[0]+"</option>"
+		});
+			$('#second').html(option);
+		}
+	});
+	
+	
+4.django动态路由(通过正则表达式实现)
+	url -> 函数 (一一对应)  (在CBV/FBV中有url -> 类)
+	a. /login/ -> def login(request):
+	b /add-user/(\d+)/index/  -> def add_user():
+	
+	
+	get传参:(静态路由)
+		http://127.0.0.1:8000/edit/?nid = 999
+		url(r'^login/',views.login)
+		def login(request):
+			a = request.GET.get('nid')
+			return HttpResponse('...')
+			 
+			
+	非get传参:(动态路由,url中的正则表达式必须统一分组方法)
+		http://127.0.0.1:8000/edit/999/
+		url(r'^login/(\d+)/(\w+)',views.login)
+		def login(request,a1,a2): (*args)也行 ()中的内容会被赋值到a1,a2,按照正则表达式匹配的顺序传参 
+			return HttpResponse('...')
+			
+		http://127.0.0.1:8000/edit/999/
+		url(r'^login/(?P<a1>\w+)/(?P<a2>\d+)/',views.login)
+		def login(request,a1,a2):(**kwargs)也行
+			return HttpResponse('...')
+			
+	终止符:解决匹配问题
+	url(r'^login/$',views.login)  #加上终止符就行
+	
+	
+	伪静态:(访问更快速)
+	url(r'^login/login.html$',views.login)
+	
+			
+				
+5.路由分发
+	from django.conf.urls import url,include
+	#在项目同名package下的urls里面设置
+		urlpatterns = [
+			url(r'^api01/',include('api01.urls')),
+			url(r'^api02/',include('api02.urls')),
+		]
+	
+	#在api01/api02 package中设置
+		from api01 import views
+		urlpatterns = [
+			url(r'index/',views.func),
+		]
+
+
+6.反生成url(http://127.0.0.1:8000/index/123/)
+	1.可以反生成Url
+		#(列表模式)
+			#url对应
+			urlpatterns = [
+				url(r'^index/(\d+)/$', views.func,name = 'n1'),
+			]
+
+			#视图函数
+			from django.urls import reverse
+			from django.shortcuts import HttpResponse,render,redirect
+
+			def func(request,a1):
+				print(a1)
+				v = reverse('n1',args = (1,))
+				print(v)  #/index/1/
+
+				return HttpResponse("haha")
+			
+			
+		#(字典模式)
+			#url对应
+			urlpatterns = [
+				url(r'^index/(?P<a1>\d+)/$', views.func,name = 'n1'),
+			]
+
+			#视图函数
+			from django.urls import reverse
+			from django.shortcuts import HttpResponse,render,redirect
+
+			def func(request,a):
+				print(a1)
+				v = reverse('n1',kwargs ={'a1':1111})
+				print(v)  #/index/1111/
+
+				return HttpResponse("haha")
+	
+	
+	2.运用在模板语言中
+		
+		urlpatterns = [
+			url(r'^index/$',views.func,name = 'n3'),
+			]
+		def func(request):
+			return render(request,'index.html',[1,2,3,4,5])
+		#这里url "n1" 就是 /login/
+		<form method="post" action="{% url "n3" %}" onsubmit="return Judge()" >
+		
+		
+		
+		urlpatterns = [
+			url(r'^index/(\w+)/$',views.func,name = 'n4'),
+			]
+		def func(request):
+			return render(request,'index.html',{"datalist":[1,2,3,4,5]})
+		#这里url "n1" 就是 /login/, i会自动填补到(\w+)的位置上
+		{% for i in datalist %}
+			<form method="post" action="{% url "n4" i %}" onsubmit="return Judge()" >
+		{% endfor %}
+		
+		
+		
+		#多参数情况
+		{% for i in datalist %},  i  1会依次填入匹配括号
+			<form method="post" action="{% url "n4" i 1 %}" onsubmit="return Judge()" >
+		{% endfor %}
+		
+		
+		#使用场景
+		url(r'^index/as/qs1/rrt/',views.index,name = 'n1')
+		url(r'^index/as1/qs2/rrt/',views.index,name = 'n2')
+		url(r'^index/as2/qs3/rrt/',views.index,name = 'n3')
+		url(r'^index/as3/qs4/rrt/',views.index,name = 'n4')
+		url(r'^index/as4/qs5/rrt/',views.index,name = 'n5')
+		url(r'^index/as5/qs6/rrt/',views.index,name = 'n6')
+		url(r'^index/as6/qs7/rrt/',views.index,name = 'n7')
+		url(r'^index/as7/qs8/rrt/',views.index,name = 'n8')
+		url(r'^index/as8/qs9/rrt/',views.index,name = 'n9')
+		
+		
+		用户1:
+			'^index/as/qs1/rrt/'  addOrder
+			'^index/as1/qs2/rrt/'  n2
+			'^index/as2/qs3/rrt/'  n3
+		
+		
+		用户2:
+			'^index/as3/qs4/rrt/'  n4
+			'^index/as4/qs5/rrt/'  n5
+			'^index/as5/qs6/rrt/'  n6
+			'^index/as6/qs7/rrt/'  n7
+		
+		用户3:
+			'^index/as2/qs3/rrt/'  n3
+			'^index/as3/qs4/rrt/'  n4
+			'^index/as4/qs5/rrt/'  n5
+			'^index/as5/qs6/rrt/'  n6
+			'^index/as6/qs7/rrt/'  n7
+			'^index/as7/qs8/rrt/'  n8
+			'^index/as8/qs9/rrt/'  n9
+		
+		
+		#用户1
+		def index(request):
+			url_list = ['addOrder',
+				'n2',
+				'n3']
+			return render(...,{'datalist':url_list})
+		
+		<ul>
+			{% for name in datalist %}
+				<li><a href = '{% url name %}'>haha</a></li>
+			{% endfor %}
+		
+		
+
+		
+		
+		

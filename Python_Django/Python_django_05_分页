@@ -1,0 +1,126 @@
+分页
+	分批获取数据
+		models.UserInfo.objects.all()[0:10]
+		models.UserInfo.objects.all()[10:20]
+
+	-Django自带的分类器Paginator(不够有泛用性)
+		#后端
+		from django.core.paginator import Paginator,Page,PageNotAnInteger,EmptyPage
+		
+		def test2(request):
+			page_number_str = request.GET.get('page')
+			current_page = int(page_number_str)
+			result = models.UserInfo.objects.all()
+			paginator = Paginator(result,10)
+			#paginator对象的方法
+				#per_page:每页显示的条目数量
+				#count: 数据总个数
+				#num_pages:总页数
+				#page_range:总页数的索引范围,(1,10),(1,200)
+				#page:  page对象
+			try:
+				posts = paginator.page(current_page)
+				#posts对象的方法
+					#has_next 是否有下一页
+					#next_page_number 下一页页码
+					#has_previous  是否有上一页页码
+					#previous_page_number 上一页页码
+					#object_list   分页之后的数据列表
+					#paginator  paginator对象
+			except PageNotAnInteger as e:
+				posts = paginator.page(1)
+			except EmptyPage as e:
+				posts = paginator.page(1)
+
+			return render(request,'test2page.html',{'result':posts})
+			
+		#前端
+			<h1>用户列表</h1>
+			<ul>
+				{% for user in result.object_list %}
+					<li>{{ user.name }}</li>
+				{% endfor %}
+			</ul>
+			<div>
+				{% if result.has_previous %}
+					<a href = "/app02/test2/?page={{ result.previous_page_number }}">上一页</a>
+				{% endif %}
+				{% for num in result.paginator.page_range%}
+					<a href = "/app02/test2/?page={{ num }}">{{ num }}</a>
+				{% endfor %}
+				{% if result.has_next %}
+					<a href = "/app02/test2/?page={{ result.next_page_number }}">下一页</a>
+				{% endif %}
+			</div>
+			
+		#页码不能很好的显示出来(最好用BootStrap来,只能在Django框架中使用，不建议使用)
+			
+			
+			
+	-自定义分页组件
+		#用户自定义分页器(CBV)
+		#后端
+		class PageInfo(object):
+
+			def __init__(self,current_page,all_count,per_page,show_page):
+				try:
+					self.current_page = int(current_page)
+				except:
+					self.current_page = 1
+				self.per_page = per_page
+				self.all_count = all_count
+				a,b = divmod(all_count,per_page)
+				if b:
+					a = a+1
+				self.all_pager = a
+				self.show_page = show_page
+
+
+			def start(self):
+				return (self.current_page-1)*self.per_page
+
+			def end(self):
+				return (self.current_page)*self.per_page
+
+			def pager(self):
+				page_list = []
+
+				half = self.show_page//2
+
+
+				begin = self.current_page-half
+				stop = self.current_page+half
+				if self.all_count!=0:
+					if begin <= 0:
+						begin = 1
+					if stop > self.all_pager:
+						stop = self.all_pager
+
+					for i in range(begin,stop+1):
+						if i == self.current_page:
+							tmp = "<a style = 'display:inline-block;padding:5px;margin:5px;background-color:lightblue;' href='/app02/custom/?page=%s'>%s</a>"%(i,i)
+						else:
+							tmp = "<a style = 'display:inline-block;padding:5px;margin:5px;' href='/app02/custom/?page=%s'>%s</a>"%(i,i)
+						page_list.append(tmp)
+					return ''.join(page_list)
+
+
+
+		def custom(request):
+			user_list = models.UserInfo.objects.all()
+			length = len(user_list)
+			page_info = PageInfo(request.GET.get('page'),length,10,10)
+
+			user_list = models.UserInfo.objects.all()[page_info.start():page_info.end()]
+
+
+			return render(request,'custompage.html',{'user_list':user_list,'page_info':page_info})
+
+				
+		#前端
+		<h1>用户列表</h1>
+		{% for row in user_list %}
+			<li>{{ row.name }}</li>
+		{% endfor %}
+		{{ page_info.pager|safe}}
+

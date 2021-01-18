@@ -1,0 +1,61 @@
+1.ajax 后台提交数据
+	制作联动下拉菜单
+	//前端
+		//设置之后要重复使用的全局变量(在块级函数外部设置全局变量)
+		var DB_NAME=...;
+		var Pro_field= new array()/[]; //创建空数组的方法
+		Pro_field.push(1) //往数组中添加元素的方法
+		$(function(){
+			$('#first').hide() //初始化时候隐藏后续标签
+		}
+		
+		
+		//对不同下拉框执行不同函数实现数据注入
+		function firstSel(){
+			//判断下拉框中的值的类型,一般有三种
+			//菜单出现：value='-1'
+			//菜单未出现: null
+			//空字符串
+			var dom = $('#first').val()
+			if(dom!='' && dom!='-1' &&dom!=null){
+				//使用ajax向后台发请求
+				$.ajax({
+					url:...,
+					method:...,
+					data:{} //主要是这三个
+					dataType:'json'//表明接受的数据类型是Json格式的,在后端需要使用JsonResponse(数据类型)
+					//注意:如果数据类型是列表，则JsonResponse(list,safe=False)即可将python的 列表类型转换成json的数组类型
+					success:function(data){//返回json类型数据格式
+						var res=data;
+						var option; //用于即将创建的html标签
+						option+="<option value='-1'>...</option>"
+						//使用jquery遍历对象
+						$.each(res(迭代对象),function(index,value){//index指的是某一元素在数组中的下标，value代表某一下标对应的值
+							option+="<option value='"+value[0]+"'>"+value[0]+"</option>"//将所有元素加入级联菜单当中
+							
+						});
+						$('#second').html(option);//填充下拉菜单
+						$('#second').show();
+					}
+				}
+			}else{
+				$('#second').hide();
+		}
+		
+		//后端(用Oracle)
+		//采用Oracle取到的数据为列表嵌套元组格式，不含字段名称
+		//可利用列表生成式生成列表传回前端
+		list=[li for li in iterable_object]
+		return JsonResponse(list,safe=False)//字典类型无需加safe参数
+		
+		
+		
+		
+2.正则表达式
+    匹配括号等特殊字符时必须加‘\'符号。
+
+		
+		
+		
+		
+		

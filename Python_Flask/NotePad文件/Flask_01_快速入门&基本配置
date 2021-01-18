@@ -1,0 +1,256 @@
+今日内容:Flask框架(https://www.cnblogs.com/wupeiqi/articles/7552008.html)
+	1.介绍Flask,Django,Tornado框架
+		Django:重武器，包含了非常多的组件，用于web开发,ORM,FORM,ModelForm,缓存，Session,中间件，信号等.
+		Flask:短小精悍，内部没有很多组件，第三方组件丰富。
+		Tornado:多线程.
+		
+	2.Flask快速入门
+		-安装
+			pip install flask
+            
+		-wsgi
+            wsgiref实例:(django用的)
+                from wsgiref.simple_server import make_server
+     
+     
+                def RunServer(environ, start_response): #django内部的方法就是WSGIHandler
+                    start_response('200 OK', [('Content-Type', 'text/html')])
+                    return [bytes('<h1>Hello, web!</h1>', encoding='utf-8'), ]
+                 
+                 
+                if __name__ == '__main__':
+                    obj = WSGIHandler() #django内部的调用逻辑
+                    #wsgi.py源码中会有这样一行
+                    httpd = make_server('', 8000, runserver)
+                    #请求进来执行runserver,如果runserver是方法,加括号执行.Django内部runserver是一个WSGIHandler对象，加括号调用__call__方法
+                    print("Serving HTTP on port 8000...")
+                    httpd.serve_forever()  #相当于监听accept，有连接进来就执行RunServer函数
+                    
+                    
+                    
+            werkzeug实例:(flask用的)
+                from werkzeug.wrappers import Request, Response
+
+                @Request.application
+                def hello(request):
+                    return Response('Hello World!')
+
+                if __name__ == '__main__':
+                    from werkzeug.serving import run_simple
+                    run_simple('localhost', 4000, hello) #底层相当于socket监听accept，有连接进来就执行hello函数,如果hello是对象,对象加括号，就是执行对象的__call__方法
+                    
+                    
+            本质的本质(socket):
+                import socket
+  
+                def handle_request(client):
+                    buf = client.recv(1024)
+                    client.send("HTTP/1.1 200 OK\r\n\r\n")
+                    client.send("Hello, Seven")
+                  
+                def main():
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.bind(('localhost',8000))
+                    sock.listen(5)
+                  
+                    while True:
+                        connection, address = sock.accept()
+                        handle_request(connection)
+                        connection.close()
+                        
+   
+		-装饰器
+            #传递参数的装饰器(两层wrapper和inner)
+            def wrapper(func): #wrapper不传参数
+				def inner(*args,**kwargs):  #最内层接收参数
+                    print("inner函数开始执行")
+                    a = func(*args,**kwargs)
+                    print("inner函数结束")
+					return a
+				return inner
+
+			@wrapper() 
+			def index(request):
+				pass
+            
+            
+            
+			#传递参数的装饰器(两层outter和inner)
+			def outter(option):
+				def wrapper(func): #第二层函数不能传参数
+                    func(option)
+					return func  #返回原来的函数
+				return wrapper
+			#inner = outter({'k1':'v1'})
+			#@inner --> index = inner(index)
+			@outter({'k1':'v1'})
+			def index(request):
+				pass
+                
+                
+            #标准写法(三层，具备所有传参能力)
+            def outter(option,request):
+                def wrapper(func): #内层函数只能接受参数地址
+                    @wraps(func) #使得函数名一样
+                    def inner(*args, **kwargs): #最内层函数接收函数本身的参数
+                        print("执行wrapper函数")
+                        a = func(request, *args, **kwargs)
+                        print("wrapper函数执行完毕")
+                        return a
+                    return inner
+                return wrapper
+
+            @outter(option = "haha",request = "haha")
+            def index(request,*args):
+                print("index中的%s"%(request))
+                print(args)
+                return "1"
+
+            print(index("传递的参数",1,2,3))
+			
+            
+            
+        -Flask中的装饰器基本运用
+            -示例
+                @app.route('/index/',methods = ['GET',],endpoint = 'n1')
+                def index():
+                    return render_template('index.html',user_dict = USERS)
+            
+            -原理剖析
+                def route(self,rule,**options)
+                    #闭包作用域
+                    # rule = /
+                    # options = {'methods' : ['GET',],'endpoint' : 'n1'}
+                    
+                    def decorator(f):
+                        endpoint = options.pop("endpoint", None)
+                        #这里的self是app对象,添加路由的本质就是这一行
+                        self.add_url_rule(rule, endpoint, f, **options)
+                        return f
+
+                    return decorator
+                            
+            -装饰器功能相当于这样直接写出来
+                def login():
+                    return "登录"
+                    
+                app.add_url_rule('/index/',methods = ['GET',],endpoint = 'n1',login)
+                app.add_url_rule('/index/',methods = ['GET',],login)  #endpoint不写默认是view_func.__name__,view_func.__name__就是login
+            
+        
+        -Session & Cookie的原理
+        
+        
+        
+        -继承字典，完成自己的功能
+            class MyDict(dict):
+                def __init__(self,*args,**kwargs):
+                    super(MyDict,self).__init__(*args,**kwargs)
+                    self['modify'] = True
+                   
+                    
+             obj = MyDict()
+             print(obj)
+             {'modify':True}
+             
+        PS: 配置文件，全局变量要大写
+             
+             
+        -flask快速入门
+            from flask import Flask
+
+            #实例化flask对象
+            app = Flask(__name__)
+
+            #将'/'和函数的对应关系添加到路由中
+            """
+            {
+                '/':index
+            }
+            """
+            @app.route('/')  #1. v = app.route('/')  2.hello_world = v(hello_world)装饰
+            def hello_world(): 
+                return 'Hello World!'
+
+
+            if __name__ =='__main__':
+                #监听用户请求
+                #如果有用户请求到来，则执行app的__call__方法
+                #app.__call__
+                app.run() #和run_simple有关联
+             
+      
+	3.基本配置
+        -写配置文件(见博客)
+            方式一：
+                app.config['DEBUG'] = True
+             
+                PS： 由于Config对象本质上是字典，所以还可以使用app.config.update(...)
+             
+            方式二：
+                app.config.from_pyfile("python文件名称")
+                    如：
+                        settings.py
+                            DEBUG = True
+             
+                        app.config.from_pyfile("settings.py")
+             
+                app.config.from_envvar("环境变量名称")
+                    环境变量的值为python文件名称名称，内部调用from_pyfile方法
+             
+             
+                app.config.from_json("json文件名称")
+                    JSON文件名称，必须是json格式，因为内部会执行json.loads
+             
+                app.config.from_mapping({'DEBUG':True})
+                    字典格式
+             
+                app.config.from_object("python类或类的路径")
+             
+                    app.config.from_object('pro_flask.settings.TestingConfig')
+             
+                    settings.py
+             
+                        class Config(object):
+                            DEBUG = False
+                            TESTING = False
+                            DATABASE_URI = 'sqlite://:memory:'
+             
+                        class ProductionConfig(Config):
+                            DATABASE_URI = 'mysql://user@localhost/foo'
+             
+                        class DevelopmentConfig(Config):
+                            DEBUG = True
+             
+                        class TestingConfig(Config):
+                            TESTING = True
+             
+                    PS: 从sys.path中已经存在路径开始写
+                 
+             
+                PS: settings.py文件默认路径要放在程序root_path目录，如果instance_relative_config为True，则就是instance_path目录
+
+                
+                
+                                
+                        
+                             
+                
+
+	
+	7.Session & cookie
+	
+	
+	8.闪现
+	
+	
+	9.蓝图
+	
+	
+	10.请求扩展 (类似于django中间件)
+	
+	
+	11.中间件 (项目刚启动的时候要经过的一些步骤)
+	
+	
+	

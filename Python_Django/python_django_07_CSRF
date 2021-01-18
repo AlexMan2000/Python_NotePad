@@ -1,0 +1,202 @@
+csrf简单用法
+
+1.什么是csrf？
+	定义:跨站请求伪造
+	场景:
+		#两种出现形式
+            #我的网页中有这样的链接
+			-GET
+				<a href = "https://www.cmbchina.com/?to=238923723&money=999999">点我转账</a> 
+			-POST
+				<form method = 'POST' action = "https://www.cmbchina.com/">
+					<input type = 'text' name = 'to' value = '238923723' style = 'display:none;'/>
+					<input type = 'text' name = 'money' value = '99999' style = 'display:none;'/>
+					<a onclick = submit() href = "https://www.cmbchina.com/?to=238923723&money=999999">点我转账</a>
+				</form>
+                
+            #只有那些已经登录银行转账服务的用户一点击超链接，钱就到我的账户来了。没登录的用户点击这个链接会先跳转到登录界面
+
+			
+		#解决方法
+			-随机字符串(CSRF)
+				先GET访问官方网站，网站会给你随机字符串;之后以POST方法提交的时候，网站会根据随机字符串做校验,没有随机字符串就不让提交
+					<form method = 'POST' action = "https://www.cmbchina.com/">
+						asaweaewaeawaeawewa(随机字符串)
+						<input type = 'text' name = 'to' value = '238923723' style = 'display:none;'/>
+						<input type = 'text' name = 'money' value = '99999' style = 'display:none;'/>
+						<a onclick = submit() href = "https://www.cmbchina.com/?to=238923723">点我转账</a>
+					</form>
+		
+		
+		
+		
+2.Django中的CSRF(第一次以GET方式访问网站的时候，服务器在浏览器客户端html页面和cookies中都写入的随机字符串，用于校验)
+	-取消注释内部中间件
+		内置中间件 'django.middleware.csrf.CsrfViewMiddleware',
+	
+		<form method = 'POST' action = '/app02/csrf1/'>
+			{%csrf_token%} 
+			#这个token添加的随机字符串
+				<input type="hidden" name="csrfmiddlewaretoken" value="qKE0DxMlPopwEyOwFT1FJOjjsINUt6M9Ao6zobVPVAhX9rFmidlaRyzc8gTz4HEK">
+			<input type = 'text' name="user"/>
+			<input type = 'submit' value = "提交"/>
+		</form>
+        
+    -装饰器
+        from django.utils.decorators import method_decorator
+        def wrapper(func):
+            def inner(*args,**kwargs):
+                return func(*args,**kwargs)
+            return inner
+        
+        @method_decorator(wrapper,name = 'get')
+        class Foo(View):
+        
+            @method_decorator(wrapper)
+            def get(self,request):
+                pass
+                
+            def post(self,request):
+                pass
+    
+   
+    -FBV
+        -局部禁用
+            from django.views.decorators.csrf import csrf_exempt
+            
+            @csrf_exempt
+            def csrf1(request):
+                if request.method == "GET":
+                    return render(request,'csrf1.html')
+                else:
+                    return render(request,'app01index.html')
+            
+        
+        -局部使用
+            from django.views.decorators.csrf import csrf_protect
+            @csrf_protect
+            def csrf1(request):
+                if request.method == "GET":
+                    return render(request,'csrf1.html')
+                else:
+                    return render(request,'app01index.html')
+                    
+                    
+    -CBV
+        from django.utils.decorators import method_decorator
+        
+        #只有以下两种
+            #对类中的所有方法应用上装饰器
+            @method_decorator(csrf_protect,name='dispatch')
+            #给类中的某个方法加装饰器,给get上加,因为是基于反射
+            @method_decorator(csrf_protect,name = 'get')
+            class HomePage(View):
+                
+                def get(self,request,*args,**kwargs):
+                    return render(request,'homepage.html')
+
+                def post(self,request,*args,**kwargs):
+                    print(request.POST.get("user"))
+                    return HttpResponse("你好呀")
+                
+                
+         
+3. 提交数据时，携带CSRF
+    -Form
+        <form method = 'POST' action = '/app02/csrf1/'>
+            {% csrf_token %}
+            <input id = "user" type = 'text' name="user"/>
+            <input type = 'submit' value = "提交"/>
+        </form> 
+    -Ajax提交
+        -第一种(将csrf_token放置在data中)
+            #前端
+            <form method = 'POST' action = '/app02/csrf1/'>
+                {% csrf_token %}
+                <input id = "user" type = 'text' name="user"/>
+                <input type = 'submit' value = "提交"/>
+                <a onclick = "submitForm();">Ajax提交</a>
+            </form>  
+            <script src = '/static/jquery.js'></script>
+            <script>
+                function submitForm(){
+                    var csrf = $("input[name = 'csrfmiddlewaretoken']").val();
+     
+                    var user = $("#user").val();
+                    $.ajax({
+                        url:'/app02/csrf1/',
+                        type:'POST',
+                        data:{"user":user,
+                            "csrfmiddlewaretoken":csrf},
+                        #这样写也可以
+                        data:{"user":user,
+                            "csrfmiddlewaretoken":{{csrf_token}}',
+                        success:function(arg){
+                            console.log(arg);
+                        }
+                    })
+                }
+            </script>
+            
+            #后端
+            def csrf1(request):
+                if request.method == "GET":
+                    return render(request,'csrf1.html')
+                else:
+                    value = request.POST.get('csrfmiddlewaretoken')
+                    print(value)
+                    return HttpResponse('OK')
+                    
+                    
+                    
+                    
+        -第二种(在Response Cookies中,提交时放在请求头中)
+            #依赖jquery.cookie.js包
+            #前端
+            var token = $.cookie('csrftoken'); #在第一次get请求,服务器将csrf写入浏览器之后,从response cookies中获取的
+            <script>
+            function submitForm(){
+                var token = $.cookie('csrftoken');
+                var user = $("#user").val();
+                $.ajax({
+                    url:'/app02/csrf1/',
+                    type:'POST',
+                    headers:{"X-CSRFToken":token}, #键的名称只能是这样,最终呈现在ajax请求的Reuqest Header中
+                    data:{"user":user}, #在后端通过request.POST获取
+                    success:function(arg){
+                        console.log(arg);
+                    }
+                })
+            }
+            </script>
+            
+            
+        -注意在html页面上的csrf_token值和在cookie中的csrf_token值不一样
+        
+        
+
+		
+	
+问题：
+	1.钓鱼网站的页面是由钓鱼网站的服务器给你返回的
+	  正经的网站的页面是由正经网站服务器给你返回的。
+	  
+	2.Django种内置了csrf中间件
+		它做的事情是:
+			1.在render返回页面的时候，在页面中塞了一个影藏的input标签
+			
+			2.当你提交数据的时候，它帮你做校验，如果校验不通过就拒绝这次请求。
+			
+			3.写在表单内
+			
+			
+中间件
+csrf
+CBV
+规范
+	-10条规范
+	-认识
+djangorestframework
+	-请求声明周期
+	-如何验证
+	-源码流程

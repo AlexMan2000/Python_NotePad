@@ -1,0 +1,210 @@
+路由系统
+	-FBV
+		@app.route('/login/',methods = ['GET','POST'])
+		def login():
+			if request.method == "GET":
+
+				return render_template('login.html')
+			else:
+				headers = request.query_string  #url中的数据
+				user = request.form.get('user')  #form表单的提交数据
+				pwd = request.form.get('pwd')
+				if user == "root" and pwd =="123123":
+					return redirect('/index/')
+				else:
+					return render_template('login.html',error = '用户名或密码错误')
+		
+		#上面加了装饰器下面这行就不用写
+		app.add_url_rule('/login/','n2',login,methods = ['GET','POST',])
+		
+		-路由原理
+			-示例
+			@app.route('/index/',methods = ['GET',],endpoint = 'n1')
+			def index():
+				return render_template('index.html',user_dict = USERS)
+		
+			#Flask类中的route方法
+			-原理剖析
+				def route(self,rule,**options)
+					#闭包作用域
+					# rule = /
+					# options = {'methods' : ['GET',],'endpoint' : 'n1'}
+					
+					def decorator(f):
+						endpoint = options.pop("endpoint", None)
+						#这里的self是app对象,添加路由的本质就是这一行
+						self.add_url_rule(rule, endpoint, f, **options)
+						return f
+
+					return decorator
+			
+		
+		
+	-CBV
+		def auth(func):
+			def inner(*args,**kwargs):
+				result = func(*args,**kwargs)
+				return result
+			return inner
+
+		#CBV写法
+		class IndexView(views.MethodView):
+			method = ['GET',]
+			decorators = [auth,]
+
+			#内部执行dispatch函数根据反射执行对应的方法
+			def get(self):
+				return 'Index.GET'
+
+			def post(self):
+				return 'Index.POST'
+
+		app.add_url_rule('/index/',view_func = IndexView.as_view(name = 'index'))  #name = endpoint
+			
+			
+	-add_url_rule方法
+		-参数
+			-defaults = None
+				#defaults(flask框架内部包装过的index函数时不支持通过decorator传递参数的，如原理剖析中展示的
+				#defaults便提供了为被装饰函数提供参数的方法)
+				#当url中无参数，但是函数需要参数的时候,使用default可以为函数提供参数
+			-methods = None #允许的请求方式
+			-view_func = None #视图函数名称
+			-strict_slashes= None #对URL最后的/符号是否严格要求 
+				@app.route('/index',strict_slashes = False)
+					#访问 http://www.xx.com/index/  http://www.xx.com/index 都行 
+				@app.route('/index',strict_slashes = True)
+					#仅访问 http://www.xx.com/index
+            -endpoint = None  #名称，用于反向生成URL，即： url_for('名称')
+
+			@app.route('/index',methods = ['GET',],endpoint = 'n1',defaults = {'nid':888},strict_slashes=False)
+			def index(nid): 
+				print(nid)
+				return render_template('index.html',user_dict = USERS)
+			
+			
+			
+			-redirect_to(后端方法)
+			@app.route('/index',methods = ['GET','POST'],endpoint = 'n1',redirect_to = '/index2')
+			def index(): 
+				return "公司老首页"
+				
+			  
+			@app.route('/index2',methods = ['GET','POST'],endpoint = 'n2')
+			def index2(): 
+				return "公司新首页"
+				
+		   
+			-subdomain = None
+			#先配置
+			app.config['SERVER_NAME'] = 'www.oldboy.com:5000'  -->
+			@app.route("/", subdomain="admin") 'admin.oldboy.com:5000'也能访问'www.oldboy.com:5000'
+			def static_index():
+				"""Flask supports static subdomains
+				This is available at admin.your-domain.tld/"""
+				return "static.your-domain.tld"
+
+
+			@app.route("/dynamic", subdomain="<username>")
+			def username_index(username):   #'xxxxx.oldboy.com:5000/dynamic'也能访问'www.oldboy.com:5000/dynamic'
+				"""Dynamic subdomains are also supported
+				Try going to user1.your-domain.tld/dynamic"""
+				return username + ".your-domain.tld"
+
+
+		PS: hosts文件设置对应关系
+			C:\Windows\System32\drivers\etc\hosts
+				127.0.0.1  localhost
+				127.0.0.1  admin.oldboyedu.com
+				
+			小工具: 脚本,修改host文件(为公司测试人员开发的修改host文件的小工具)
+				python run.py 127.0.0.1 www.oldboyedu.com
+				
+				会议室预定
+				
+				调查问卷
+                
+                
+        -其他路由写法
+            @app.route('/user/<username>')
+            @app.route('/post/<int:post_id>') 
+            @app.route('/post/<float:post_id>')
+            @app.route('/post/<path:path>')
+            @app.route('/login', methods=['GET', 'POST'])
+            #函数就可以接受匹配到的参数,冒号后的就是匹配到的参数名
+            def index(username/post_id/path):
+                pass
+                
+            #用例
+            @app.route('/index/<int:nid>',endpoint = 'n1') /index/123
+            def index(nid):
+                print(nid) 123
+                print(url_for('n1',nid = '888')) /index/888
+                return "HAha"
+            
+            配置文件中可以添加路由处理方式
+                DEFAULT_CONVERTERS = {
+                    'default':          UnicodeConverter,
+                    'string':           UnicodeConverter,
+                    'any':              AnyConverter,
+                    'path':             PathConverter,
+                    'int':              IntegerConverter,
+                    'float':            FloatConverter,
+                    'uuid':             UUIDConverter,
+                    'regex':            RegexConverter,  #自定义
+                }
+            
+            #用例
+                from flask import Flask, views, url_for
+                from werkzeug.routing import BaseConverter
+
+                app = Flask(import_name=__name__)
+
+                #1.写类,需要继承BaseConverter
+                class RegexConverter(BaseConverter):
+                    """
+                    自定义URL匹配正则表达式
+                    """
+                    def __init__(self, map, regex):
+                        super(RegexConverter, self).__init__(map)
+                        self.regex = regex
+                    
+                    #匹配成功的都是字符串类型，to_python会在正则匹配之后，传入视图函数之前对数据类型做一下校验
+                    def to_python(self, value):
+                        """
+                        路由匹配时，匹配成功后传递给视图函数中参数的值
+                        :param value: 
+                        :return: 
+                        """
+                        return int(value)
+                    
+                    #反向生成的时候用这个函数
+                    def to_url(self, value):
+                        """
+                        使用url_for反向生成URL时，传递的参数经过该方法处理，返回的值用于生成URL中的参数
+                        :param value: 
+                        :return: 
+                        """
+                        val = super(RegexConverter, self).to_url(value)
+                        return val
+
+                # 2.添加RegexConverter到flask中
+                app.url_map.converters['regex'] = RegexConverter
+
+                #应用
+                @app.route('/index/<regex("\d+"):nid>',endpoint = 'n1')
+                def index(nid): 
+                    print(url_for('n1', nid='888')) #反向生成的url，类比django中的reverse
+                    return 'Index'
+
+                if __name__ == '__main__':
+                    app.run()
+
+            
+            
+            
+            
+            
+            
+            
+        

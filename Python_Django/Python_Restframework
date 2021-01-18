@@ -1,0 +1,100 @@
+1.认证
+	(1).问题1：有些API需要用户登录成功后，才能访问；
+	有些数据无需登录就能访问。
+	(2).基本使用认证组件
+		解决：
+			a. 创建两张表
+			b. 用户登录（返回token) 并保存到数据库
+	(3).认证流程原理
+	(4).再看一遍
+		1.局部使用和全局使用
+	(5).内置的认证 
+	梳理：
+		1.使用认证功能的时候
+			-创建认证类，继承from rest_framework.authentication import BaseAuthentication
+			-authenticate方法实现认证逻辑
+			-authenticate返回值：
+				-None,下一个认证来执行
+				-抛出异常，认证失败，执行not_authenticate
+				-返回元组 （元素1，元素2）元素1赋值给request.user, 元素2赋值给request.auth
+			-局部使用
+				-在类里面写上静态字段 authentication_classes = [Authentication,]
+			-全局使用
+				-在settings.py里面设置 'DEFAULT_AUTHENTICATION_CLASSES':['api.utils.auth.InitialAuthentication','api.utils.auth.Authentication',],
+										# 'UNAUTHENTICATED_USER':lambda :'匿名用户',
+										'UNAUTHENTICATED_USER':None, #匿名，request.user=None
+										'UNAUTHENTICATED_TOKEN':None #匿名，request.auth=None
+		2.源码流程
+			dispatch--->
+				对request进行封装得到Request类
+					-获取定义的认证类（全局、局部），通过列表生成式创建认证类的对象的列表
+					-执行initial
+						-perform_authentication
+							request.user(在内部循环执行认证流程)
+		
+2.权限
+	源码流程
+	内置权限
+	
+	
+	总结：
+		1. 基本使用认证组件
+			-类，必须继承BasePermisson
+			-必须实现has_permission方法
+			
+			-返回值
+				-True,有权访问
+				-False 无权访问
+			-全局和局部
+		
+		2.源码流程
+		
+		
+3.访问频率控制
+	  VISIT_RECORD={}
+	from rest_framework.throttling import BaseThrottle
+	class VisitThrottle(object):
+    #规定60秒内只能访问3次
+		def __init__(self):
+			self.history=None
+		def allow_request(self,request,view):
+			#1.获取用户IP
+			# remote_addr=request._request.META.get('REMOTE_ADDR')
+			remote_addr=request.META.get('REMOTE_ADDR')
+			ctime=time.time()
+			if remote_addr not in VISIT_RECORD:
+				VISIT_RECORD[remote_addr]=[ctime,]
+				return True
+			history=VISIT_RECORD.get(remote_addr)
+			self.history=history
+			while history and history[-1] < ctime - 60:
+				history.pop()
+
+			if len(history) <3:
+				history.insert(0,ctime)
+				return True
+
+			#return None就是不允许访问了
+
+		def wait(self):
+			"""
+			还需要等多少秒才能访问
+			:return:
+			"""
+			ctime=time.time()
+			return 60-(ctime-self.history[-1])
+			
+	源码流程
+	内置节流
+
+	梳理:
+		匿名用户的IP会换，登录用户会注册很多账号
+		a.基本使用:
+			-类，继承：BaseThrottle, 实现: allow_request, wait
+			-类，继承: SimpleRateThrottle, 实现: allow_request, wait, scope='luffy' (配置文件的key)
+			
+		b.和权限几乎一样
+			
+		
+
+										

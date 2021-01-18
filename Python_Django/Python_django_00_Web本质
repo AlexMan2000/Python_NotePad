@@ -1,0 +1,146 @@
+今日内容
+HTTP:
+	无状态，短连接
+	
+TCP:
+	不断开
+	
+WEB应用（网站）：
+	HTTP协议:
+		发送:
+			请求头:
+				GET /HTTP/1.1
+				Host: www.baidu.com
+				Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+				Accept-Encoding: gzip, deflate, br
+				Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+				Cache-Control: max-age=0
+				Connection: keep-alive
+				Cookie: "很长的字符串"
+				Sec-Fetch-Dest: document
+				Sec-Fetch-Mode: navigate
+				Sec-Fetch-Site: none
+				Sec-Fetch-User: ?1
+				Upgrade-Insecure-Requests: 1
+				User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.66
+			请求体:
+				在请求头\r\n\r\n之后的内容
+			
+			普通返回:
+				响应头:
+					200 OK
+					Bdpagetype: 2
+					Bdqid: 0x826225a400087c95
+					Cache-Control: private
+					Connection: keep-alive
+					Content-Encoding: gzip
+					Content-Type: text/html;charset=utf-8
+					Date: Sun, 10 Jan 2021 11:26:14 GMT
+					Expires: Sun, 10 Jan 2021 11:26:14 GMT
+					Server: BWS/1.1
+					Set-Cookie: BDSVRTM=499; path=/
+					Set-Cookie: BD_HOME=1; path=/
+					Set-Cookie: H_PS_PSSID=33423_33242_31660_33285_33286_33351_33413_26350_33394_33383_33370; path=/; domain=.baidu.com
+					Strict-Transport-Security: max-age=172800
+					Traceid: 161027797406971514989395113158953696405
+					Transfer-Encoding: chunked
+					X-Ua-Compatible: IE=Edge,chrome=1
+				响应体:
+					用户在浏览器上看到的解析出来的内容
+					<html>
+					</html>
+					
+					
+				重定向返回:浏览器再发起一次HTTP请求
+					响应头:
+						LOCATION:"www.baidu.com"
+						Bdpagetype: 2
+						Bdqid: 0x826225a400087c95
+						Cache-Control: private
+						Connection: keep-alive
+						Content-Encoding: gzip
+						Content-Type: text/html;charset=utf-8
+						Date: Sun, 10 Jan 2021 11:26:14 GMT
+						Expires: Sun, 10 Jan 2021 11:26:14 GMT
+						Server: BWS/1.1
+						Set-Cookie: BDSVRTM=499; path=/
+						Set-Cookie: BD_HOME=1; path=/
+						Set-Cookie: H_PS_PSSID=33423_33242_31660_33285_33286_33351_33413_26350_33394_33383_33370; path=/; domain=.baidu.com
+						Strict-Transport-Security: max-age=172800
+						Traceid: 161027797406971514989395113158953696405
+						Transfer-Encoding: chunked
+						X-Ua-Compatible: IE=Edge,chrome=1
+						
+				接收响应:
+					普通响应:页面直接显示
+					重定向响应:浏览器再发起一次HTTP请求
+						
+				
+	
+	浏览器(socket客户端)
+		2.www.cnblogs.com(42.121.252.58,80)
+			sk.socket()
+			sk.connect((42.121.252.58,80))
+			
+			sk.send(b'我想要')
+		5.接收响应
+		6.连接断开
+		#这也是为什么在chatting system project中需要专门定义函数判断是哪个socket发来请求，就是因为这种无状态，短连接性质)
+			
+		
+		
+	博客园(socket服务端)
+		1.监听ip和端口 (42.121.252.58,80)
+			while True:
+				sk = socket.accept()
+				3.收到:b'我想要'
+				4.响应:b"好"
+				用户断开
+				
+				
+				
+				
+例子:
+	(服务端)
+
+	import socket
+
+	def handle_request(client):
+		#获得请求，获取数据
+		data = sock.recv(1024) #b'好'
+		根据获取的data中的request.method（请求类型）来返回对应的数据
+		conn.send(b'HTTP/1.1 200 OK\r\n') #响应头
+		conn.send(b'123123') #响应体
+		
+		
+	def main():
+		sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+		sock.bind(('127.0.0.1',8080))
+		sock.listen(5)
+		while True:
+			conn,addr = sock.accept() #阻塞住，等待结果
+			handle_request(conn)
+			conn.close()
+	
+	if __name__ == '__main__':
+		main()
+	
+	
+	
+	
+	(客户端)
+	import socket
+
+	sock = socket.socket()
+	sock.connect(('127.0.0.1',80))
+	sock.send(b'好')
+	str = sock.recv(1024).encode()
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,220 @@
+实例一:
+    class Foo:
+
+        country='China' #类变量
+        def __init__(self,name):
+            self.name=name #实例变量/字段
+    
+        def func(self):
+            pass
+        
+        
+    obj1=Foo('shit')
+    obj2=Foo('aa')
+    Foo.country='a'#修改类变量
+    #都会修改
+    print(obj1.country)
+    print(obj2.country)
+
+    #准则:实例变量（字段），使用对象访问，即：obj1.name
+    #类变量，使用类进行访问，即：Foo.country(实在不方便时使用对象访问）
+    print(obj1.name)
+    print(Foo.country)
+
+
+总结:
+    变量:
+        -实例变量/字段:
+            -公有实例变量（字段）
+            -私有实例变量（字段）
+        -静态变量（类变量）
+            -公有类变量
+            -私有类变量
+    
+实例二:
+    class Foo:
+        def __init__(self,name):
+            self.name=name #实例变量
+            self.age=123 #实例变量
+        def func(self):
+            print(self.name)#公有变量
+obj=Foo('shit')
+print(obj.name)#公有实例变量（字段）
+print(obj.age)
+obj.func()
+
+
+实例三：
+    class Foo:
+        def __init__(self,name):
+            self.__name=name #私有实例变量
+            self.age=123 #实例变量
+        def func(self):
+            print(self.name)#公有变量
+print(obj.__name)#不能执行
+
+
+
+实例四：
+    class Foo:
+        country='s'
+        def __init__(self,name):
+            self.__name=name #私有实例变量
+            self.age=123 #实例变量
+        def func(self):
+            print(self.country)#内部调用
+            print(Foo.country)#通过类调用          
+#外部调用:
+print(Foo.country)
+obj=Foo()
+obj.func()
+
+class Base(object):
+    __secret='受贿'
+    def func1(self):
+        print(Base.__secret)
+    
+class Foo(Base):
+    def func(self):
+        print(self.__secret)
+        print(Foo.__secret)
+    
+#私有变量通过调用子类无法访问
+obj=Foo()
+obj.func1()#可以访问
+成员分为三类：
+    变量：
+    
+    
+    方法：
+        -实例方法
+        -静态方法
+        -类方法
+
+
+class Foo(object):
+
+
+    def __init__(self,name):
+        self.name=name
+
+    def func(self):#实例方法,要调用初始化变量时用实例方法
+        print('实例方法')
+        print(self.name)
+        
+    @staticmethod
+    def display()：#静态方法，参数个数不受限制，通过类也能调用
+        print('shit')
+        
+    @classmethod  
+    def show(cls,x1,x2):
+        print(cls,x1,x2)
+
+obj=Foo()
+obj.func()
+Foo.display()#直接用类也可调用，推荐用类调用静态方法
+Foo.show(1,8)#直接用类也可调用
+
+
+#方法也有公有和私有
+    class Foo(object):
+        def __init__(self):
+            pass
+        
+        def __display(self,arg):
+            print('私有方法',arg)
+        
+        def func(self):
+            self.__display(123)
+        
+    obj=Foo()
+    obj.func()#能访问，外部能间接访问到私有方法
+    obj.__display(123)#无法访问
+
+    class Foo(object):
+        def __init__(self):
+            pass
+        @staticmethod    
+        def __display(self,arg):
+            print('私有方法',arg)
+        
+        def func(self):
+            Foo.__display(123)
+        
+        @staticmethod
+        def get_display():
+            Foo.__display(123)
+        
+        
+    Foo.__display(123)#也无法访问   
+    obj=Foo()
+    obj.func()#能访问，外部能间接访问到私有方法
+    Foo.get_display()#能访问
+
+#属性
+    class Foo(object):
+        def __init__(self):
+            pass
+        @property #无法加参数，只有self
+        def start(self):
+            return 1
+        @property #无法加参数，只有self,无需传参数且有返回值时可以使用@property
+        def end(self):
+            return 10
+            
+    obj=Foo()
+    print(obj.start)
+    print(obj.end)
+
+#嵌套
+    class School(object):
+        def __init__(self,name,address):
+            self.name=name
+            self.address=address
+            
+    obj1=School('aa','ss')
+    obj2=School('a1','s1')
+    obj3=School('a2','s2')
+    
+    
+    
+    class Teacher(object):
+        def __init__(self,name,age,salary):
+            self.name=name
+            self.age=age
+            self.__salary=salary
+            self.school=None
+            
+    t1=Teacher('李杰',19,188888)
+    t2=Teacher('艳涛',18,60)
+    t3=Teacher('女神',16,900000)
+    
+    t1.school=obj1#嵌套
+    t2.school=obj2
+    t3.school=obj3
+    
+    print(t1.school.name)
+    print(t1.school.address)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

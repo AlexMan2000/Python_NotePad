@@ -1,0 +1,173 @@
+储存过程:
+	保存在MySQL上的一个别名 =>一坨SQL
+	创建存储过程:
+		delimiter //
+		create procedure p1()
+		BEGIN
+			select * from t1;
+		END//
+		delimiter ;
+	调用:
+		SQL:call p1()
+		Python:cursor.callproc('p1')
+	
+	
+	1.简单:
+		delimiter //
+		create procedure p1()
+		BEGIN
+			select * from t1;
+			insert into teacher(tnema) values ('aa')
+		END//
+		delimiter ;
+		
+		call p1()
+		cursor.callproc('p1')
+		
+	2.传参数:in
+		delimiter //
+		create procedure p2(
+			in n1 int,
+		)
+		BEGIN
+
+			select * from student where sid>n1;
+			
+		END//
+		delimiter ;
+		
+		call p2(12,2)
+		
+		cursor.callproc('p2',(12,2))
+		
+	3.传参数:out
+		delimiter //
+		create procedure p3(
+			in n1 int,
+			out n2 int  用于标识存储过程的执行结果
+		)
+		BEGIN
+			set @v1=123123
+			select * from student where sid>n1;
+			
+		END//
+		delimiter ;
+	
+		set @v1=0; 全局变量,session级别
+		call p2(12,@v1)
+		select @v1;
+		
+		
+		cursor.callproc('p3',(12,2))
+		r1=cursor.fetchall()
+		print(r1)
+
+		cursor.execute('select @_p3_0,@_p3_1')
+		r2=cursor.fetchall()
+		print(r2)
+		
+事务:
+	delimiter //
+	create procedure p4(
+		out status int
+	)
+	BEGIN
+		1.声明如果出现异常则执行{
+		  set status=1;
+		  rollback;
+		}
+		开始事务
+			...操作
+			commit;
+		结束
+		set status = 2;
+		
+	delimiter \\
+                        create PROCEDURE p1(
+                            OUT p_return_code tinyint
+                        )
+                        BEGIN 
+                          DECLARE exit handler for sqlexception 
+                          BEGIN 
+                            -- ERROR 
+                            set p_return_code = 1; 
+                            rollback; 
+                          END; 
+                         
+                          DECLARE exit handler for sqlwarning 
+                          BEGIN 
+                            -- WARNING 
+                            set p_return_code = 2; 
+                            rollback; 
+                          END; 
+                         
+                          START TRANSACTION; 
+                            DELETE from tb1;
+                            insert into tb2(name)values('seven');
+                          COMMIT; 
+                         
+                          -- SUCCESS 
+                          set p_return_code = 0; 
+                         
+                          END\\
+                    delimiter ;
+游标:
+	1.声明游标
+	2.获取A表中的数据
+		my_cursor select id,num from A 
+		
+	3. for row_id,row_num in mu cursor:
+		#检测循环是否有数据，如果无数据
+			break;
+		insert into B (num) values (row_id+row_num)
+					delimiter //
+                    create procedure p3()
+                    begin 
+                        declare row_id int; -- 自定义变量1  
+                        declare row_num varchar(50); -- 自定义变量2  
+                        DECLARE done INT DEFAULT FALSE;
+						declare temp int;
+
+
+                        DECLARE my_cursor CURSOR FOR select row_id,row_num from A;
+                        DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+                        
+                        open my_cursor;
+                            xxoo: LOOP
+                                fetch my_cursor into row_id,row_num;
+                                if done then 
+                                    leave xxoo;
+                                END IF;
+								set temp=row_id+row_num
+                                insert into B(num) values(temp);
+                            end loop xxoo;
+                        close my_cursor;
+                    end  //
+                    delimter ;
+		每一行数据需要分类,计算的话才用游标；
+		
+动态执行:(防SQL注入)
+
+
+	delimiter //
+	create procedure p7(
+		in tpl carchar(255),
+		in arg int
+		)
+	begin 
+		1.预检测某个东西 SQL语句的合法性
+		2.格式化 tpl+arg
+		3.执行SQL语句
+		
+		set @xo=arg;
+		PREPARE xxx FROM tql;
+                EXECUTE xxx USING @xo; (不能写arg,这里的值只能是@arg)
+                DEALLOCATE prepare xxx; 
+		
+	end //
+	delimiter ;
+	
+	
+	call p4('select * from student where sid > ?',25)
+	 
+		

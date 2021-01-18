@@ -1,0 +1,198 @@
+2020-3-18
+连接：
+      show databases; 查看所有数据库，也就是data目录下的所有文件
+      use 数据库名称; 进入data目录下的某个文件
+      show tables; 把所选数据库的所有文件展示出来
+      select * from 表名; 查看某个表的所有列
+      select name,age,id from 表名; 查看某个表的name,age,id列,先写谁就先提取谁
+      mysql数据库user表
+      use mysql;
+      select user,host from user;
+      
+      默认：用户root
+      创建:
+            create user 'alex'@'192.168.1.1' identified by '123123';
+            create user 'alex'@'192.168.1.%' identified by '123123';“IP是192.168.1.前缀的电脑都能登录
+            create user 'alex'@'%' identified by '123123'; 所有用户都能登录
+      授权:
+            权限
+            grant select,insert,update  on db1.* to 'alex'@'%';('*表示所有文件)(能查，能插入,能更新)
+            grant all privileges on db1.t1 to 'alex'@'%';
+            revoke all privileges from db1.t1 to 'alex'@'%';
+      DBA：提供用户名和密码
+
+
+SQL规则:
+    操作文件夹
+        创建/删除文件夹: create database db2; drop database db2;
+        设置编码类型:create database db2 default charset utf-8;
+             
+        show databases;
+        drop database db2;
+
+    操作文件
+        show tables;
+        create table t1(id int,name char(10)) default charset=utf-8; #char(10)只能有10个字符
+        create table t1(id int, name char(10)) engine=innodb default charset=utf8;
+            
+        create table t1(
+                  列名   类型    能否为空
+                  id     int     null/not null  default 1/auto_increment, )
+        
+		auto_increment 表示:自增
+		primary key: 表实约束（不能重复且不能为空）；加速查找
+		not null 是否为空
+		数据类型:
+			int 
+			char(10)
+			数字:(不同数据范围)(通过增添unsigned/signed 指定有无符号)
+				整型:
+					tinyint 
+					int
+					bigint
+				
+				浮点型:(位数越多越不精准)
+					FLOAT(位数较短时就开始不精准)
+					DOUBLE
+						0.0000010011021130101
+						0.0000010010000000000
+					decimal
+						0.1
+						
+			字符串类:
+				char(10)    速度快()  最多255个字符
+					root(长度不满10就填满)
+				vachar(10)   节省空间  最多255个字符
+					root(在内存中只占用死的字符的位置，节省空间)
+			    text
+				mediumtext
+				longtext
+				PS:定长的列往前放，变长的往后放
+			上传文件:
+				传文件路径
+				
+			时间类:
+				DATE
+				TIME
+				DATETIME
+				TIMESTAMP
+				
+				
+			枚举类型:
+				create table shirts(
+					name VARCHAR(10),
+					size ENUM('a','b','s','t'));(插入时只能从括号中选择)
+				insert into shirts(name,size) values('shit','s')
+				
+				
+				
+			集合类型:
+			    enum
+				set
+				
+				create table shirts(
+					name VARCHAR(40),
+					col SET('a','b','s','t');(插入时只能插入abst的任意组合)
+				insert into shirts(name,col) values('shit','s')
+				insert into shirts(name,col) values('shit','a,b')
+				
+				
+		实现:		
+			create table t3(
+				id int(un)signed not null auto_increment,
+				cid int(11) not null auto-increment,
+				primary key(id,cid),
+				num decimal(10(小数点前后加起来一共10位,5(小数点后面五位))
+				name char(10),
+				
+			create table t4(
+                     id int not null auto-increment primary key,name char(10))
+			innodb 支持事务,支持回滚;
+			myisam 不支持回滚;
+			
+        清空表的内容：
+			delete from t1; 这个时候再插入数据（自增从上次的结尾继续）
+			truncate table t1; 这种清空（自增从1开始),且速度更快
+
+		删除表:
+			drop table t1;
+
+		操作文件中的内容
+            插入数据:
+                insert into t1 (id,name) values(1,'shit');
+                insert into t1 (id,name) values(2,'嗯');
+            查看数据:
+                select * from t1;
+			删除：
+                delete from t1;
+				delete from t1 where id<6;
+			修改:
+				update t1 set age=18; (整个表里面age一列的数据全部改成18)
+				update t1 set age=18 where age=17;(age列中等于17的数据改成18)
+				
+		外键:
+			create table userinfo(
+				uid bigint auto-increment primary key,
+				name varchar(32),
+				department_id int
+				aa_id int,
+				constraint fk_user_depar1 foreign key (department_id) references department(id),
+				constraint fk_user_depar2 foreign key (aa_id) references AA('id')
+				)engine=innodb default charset=utf8;
+			
+			
+			create table department(
+				id bigint auto-increment primary key,
+				title char(15))engine=innodb default char=utf8;
+				
+		练习：创建表
+			create table class(cid int not null auto_increment primary key, 
+			caption VARCHAR(40))engine=innodb default charset=utf8;
+			
+			create table teacher(tid int auto_increment primary key, tname varchar(40))
+			engine=innodb default charset=utf8;
+			
+			create table course(cid int auto_increment primary key, cname varchar(40),
+			teach_id int,
+			constraint fk_user_depar foreign key (teach_id) references teacher(tid))
+			engine=innodb default charset=utf8;
+			
+			create table score(sid int auto_increment primary key,
+			student_id int,
+			course_id int,
+			constraint fk_4 foreign key(student_id) references student(sid),
+			constraint fk_1 foreign key(course_id) references course(cid))
+			engine=innodb default charset=utf8;
+			
+			create table student(sid int auto_increment primary key, 
+				sname varchar(40),gender varchar(40), class_id int, 
+				constraint fk_2 foreign key(class_id) references class(cid)) engine=
+				innodb default charset=utf8;
+			
+			插入内容:
+			show tables;
+			insert into student (sname,gender,class_id) values ('钢蛋','女',1);
+			insert into student (sname,gender,class_id) values ('铁锤','女',1);
+			insert into student (sname,gender,class_id) values ('山炮','女',2);
+			
+			insert into class (caption) values('二团');
+			insert into class (caption) values('一团');
+			insert into class (caption) values('三团');
+			
+			insert into teacher (tname) values ('波多');
+			insert into teacher (tname) values ('苍空');
+			insert into teacher (tname) values ('饭岛');
+			
+			insert into course (cname,teach_id) values ('生物',1);
+			insert into course (cname,teach_id) values ('体育',1);
+			insert into course (cname,teach_id) values ('物理',2);
+			
+			insert into score (student_id,course_id) values (1,1);
+			insert into score (student_id,course_id) values (1,2);
+			insert into score (student_id,course_id) values (2,2);
+			
+     
+一个表只能有一个主键;
+一个表可以有多个外键;
+constraint fk_t1 foreign key(t_id,p_id) references t1(s,a);s和a必须是主键
+主键可以有多列;

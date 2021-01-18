@@ -1,0 +1,6 @@
+Pandas时间序列
+1. 将字符串转换成Pandas timestamp
+	pd.to_datetime(df[''],format='')
+	
+2. 时间重采样（注意，索引为pandas时间序列才能用此方法)
+	df.resample('').sum()/mean()

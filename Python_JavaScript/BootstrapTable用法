@@ -1,0 +1,85 @@
+1. 包的导入
+	Jquery
+	<script type="text/javascript" src="/static/jquery.js"></script>
+	
+	
+	Bootstrap包(css/js)
+    <script src="/static/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" href="/static/bootstrap-3.3.7-dist/css/bootstrap.min.css "/>
+	
+	
+	BootstrapTable包(css/js)
+    <script src="/static/bootstrap-table-master/dist/bootstrap-table.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="/static/bootstrap-table-master/dist/bootstrap-table.min.css"/>
+	
+	
+	BootstrapTable-fixed-columns包(css/js)
+    <script src="/static/bootstrap-table-master/dist/extensions/fixed-columns/bootstrap-table-fixed-columns.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/bootstrap-table-master/dist/extensions/fixed-columns/bootstrap-table-fixed-columns.css"/>
+	
+
+2.实现表头固定
+	<script>
+	
+		//固定列
+		$(function(){
+			$("#table").bootstrapTable('destroy').bootstrapTable({
+				fixedColumns:true,
+				fixedNumber:1
+			});
+		})
+
+
+		//当浏览器窗口发生变化时，表头和表格不对齐的解决
+		$(function(){
+			$(window).resize(function(){
+				$('#table').bootstrapTable('resetView');
+			});
+		})
+		
+	</script>
+
+3.设置单元格样式
+$("#table").bootstrapTable({
+		//初始化设置
+			toolbar: "#toolbar",
+			striped: true, //是否显示行间隔色
+			height:300,
+			sortable: false,//是否排序
+			search: true, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端
+			strictSearch: true, //是否显示刷新
+			showColumns: true, //是否显示所有的列
+			showRefresh: true, //是否显示刷新按钮
+			minimumCountColumns: 2, //最少允许的列数
+			showToggle:true, //是否显示详细视图和列表视图的切换按钮
+			cardView: false, //是否显示详细视图,
+		
+		//前端分页设置
+			pagination:true,
+			pageNumber:2,  //初始停留页面
+			pageSize:10,  //每页初始显示行数
+			pageList:"[10, 20, 50, 200]",
+			paginationHAlign:"left", //页码显示在左边
+			paginationDetailHAlign:"right" //设置单页显示的最大行数
+			pagination:true;
+			
+			
+        columns: [{
+            field: 'id',
+            title: 'Item ID',
+			formatter:function(value,row,index){
+				return index+4;
+			}
+			cellStyle:function(value,row,index){
+				if(value!=='s'){
+				return {css:{'background-color':'green'}}
+				}else{
+					return {}
+				}
+        }, {
+            field: 'name',
+            title: 'Item Name'
+        }, {
+            field: 'price',
+            title: 'Item Price'
+        }],

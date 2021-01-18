@@ -1,0 +1,49 @@
+1.多外键关联
+	select A.*,b.* from (select ... from ...) A left join (select ... from ...) B on A.(字段1)=B.(字段1) and A.(字段2)=B.(字段2)；
+	
+2.空置用0代替
+	select nvl(字段名) from (表名)
+	
+3.笛卡尔连表
+	select * from 表A，表B，表T where A.(字段)=B.(字段) and B.(字段)=T.(字段) 通过这样的 where 来筛选出某条数据方便后续group by
+
+4.多列group by 
+	select A,B,T，count(列名) from 表名 group by A,B,T 多次分组
+	
+5.SQL查询顺序
+	select ... from (表名1) alias1 
+	(left/right/full/inner/outer) join (表名2) alias2 on alias.(字段)=alias2.(字段)
+	where ..... group by ... having ... order by ...  limit... 
+	
+6.where exists 的用法
+  表A 
+  ID   NAME
+  1     A1
+  2     A2
+  3     A3
+  
+  表B
+  ID   AID   NAME
+  1		1	  B1
+  2		2	  B2
+  3		2     B3
+
+ select * from A where exists(select * from B where A.ID=B.AID) 会选出条件判断为True时候A的相应行
+ 
+7.join 的变体
+  select * from A left join B on ... 取左
+  select * from A right join B on ... 取右
+  select * from A full join B on ... 取并集
+  select * from A inner join B on ... 取交集
+  select * from A join B on ... 和full join 差不多
+  
+8.case when 的用法
+  case when 表名.某一字段 is null '/' else 表名.某一字段 
+  
+9.substr/instr的用法，截取指定字符串
+	substr(列名,start,length)
+	instr(列名,'字符',1,1) 返回第一次出现的该字符
+	
+	
+	
+	

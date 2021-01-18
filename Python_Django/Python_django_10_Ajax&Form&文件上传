@@ -1,0 +1,622 @@
+Form 验证(重要)
+    -实例：
+        #前端
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <title>Title</title>
+            </head>
+            <body>
+                <form method = 'POST' action = '/app01/login/'>
+                    {% csrf_token %}
+                    <div>
+                        <input type = 'text' name = "username"/>{{ obj.errors.username.0 }}
+                    </div>
+                    <div>
+                        <input type = 'password' name = 'password'/>{{ obj.errors.password.0 }}
+                    </div>
+                    <input type = 'submit' value = '提交'/>
+                </form>
+
+            </body>
+            </html>
+            
+            
+        #后端
+            from django.forms import Form
+            from django.forms import fields
+
+            class LoginForm(Form):
+                #内部包含了正则验证
+                #字段名必须和前端中的name属性一一对应
+                #后台这里有多少规则，就验证几个规则，不管用户提交了多少数据
+                username = fields.CharField(max_length=18,
+                                            min_length=6,
+                                            required=True,
+                                            error_messages={'required':'用户不能为空',
+                                                            'min_length':'太短了',
+                                                            'max_length':'太长了'})
+                password = fields.CharField(min_length=16,required=True)
+                
+                
+            def login(request):
+            if request.method == 'GET':
+                return render(request,'loginpage.html')
+            else:
+                obj = LoginForm(request.POST) #实例化LoginForm对象,有用户提交的数据和规则
+                ret = obj.is_valid() #进行匹配
+                if ret:
+                    print(obj.cleaned_data)  #字典类型 {'username':'xxx','password':'sss'}
+                    return redirect('/app01/index/')
+                else:
+                    return render(request,'loginpage.html',{'obj':obj})
+    
+    
+    -使用:    
+        obj = xxx(request.POST)
+        #是否校验成功
+            v= obj.is_valid()
+           
+        #所有错误信息
+            obj.errors
+        
+        #正确信息
+            obj.cleaned_data
+        
+        
+    -流程分析
+        -用户提交数据进行校验
+            -Form提交(每次提交都会刷新，不能保留上次内容)
+                #后端
+                    class TestForm(Form):
+                        user = fields.CharField(max_length = 8)
+                        pwd = fields.CharField(min_length = 12)
+                        
+                    def login(request):
+                        if resuest.method == 'GET':
+                            return render(request,'login.html')
+                        else:
+                            obj = TestForm(request.POST)
+                            if obj.is_valid():
+                                print(obj.cleaned_data) #字典
+                                return redirect('...')
+                            else:
+                                return render(request,'login.html',{'obj':obj})
+                            
+                        
+                #前端(input标签必须要手写,name一定要和TestForm中的字段对应)
+                     <form id = 'a' method = 'POST' action = '/app01/login/'>
+                        {% csrf_token %}
+                        <div>
+                            <input type = 'text' name = "t1"/>
+                        </div>
+                        <div>
+                            <input type = 'password' name = 't2'/>
+                        </div>
+                        <input type = 'submit' value = '提交'/>
+                        <a onclick="submitForm()">ajax提交</a>
+                    </form>
+            
+                
+                - LoginForm(Form)
+                    字段名 = xxxx.xxField()  #本质验证规则，正则表达式
+                - obj = LoginForm(用户提交的数据,GET/POST方式都可以,只要有数据)
+                - result = obj.is_valid()
+                - obj.cleaned_data
+                - obj.errors
+                
+                -LoginForm(request.POST)内部原理
+                    1.  self.fields = {
+                        'username':正则表达式,
+                        'password':正则表达式
+                        }
+                        
+                    2.  循环self.fields
+                        flag = True
+                        errors = {}
+                        cleaned_data = {} 
+                        for k,v in self.fields.items():
+                            k是 user,pwd
+                            v是 正则表达式
+                            input_value = request.POST.get(k)
+                            正则表达式和input_value进行匹配
+                            #有一个失败了
+                                flag = False
+                                记录错误信息到errors
+                        #全对
+                            记录正确数据到cleaned_data
+                        return flag
+                
+                
+            -Ajax提交(提交不会刷新，能够保留上次内容)后端写法类似
+                #后端
+                def ajaxlogin(request):
+                    import json
+                    ret = {'status':True,'msg':None}
+                    if request.method == "GET":
+                        pass
+                    else:
+                        obj = LoginForm(request.POST)
+                        if obj.is_valid():
+                            print(obj.cleaned_data)
+                        else:
+
+                            ret["status"] = False
+                            ret["msg"] = obj.errors   
+                            #<class 'django.forms.utils.ErrorDict'> <ul class="errorlist"><li>username<ul class="errorlist"><li>用户不能为空</li></ul></li><li>password<ul class="errorlist"><li>This field is required.</li></ul></li></ul>
+                    v = json.dumps(ret)
+                    return HttpResponse(v)
+                    
+                #前端
+                <script>
+                    function submitForm(){
+                        var user = $("input[name = 'username]").val();
+                        var pwd = $("input[name = 'password']").val();
+                        $(".m1").remove();
+                        $.ajax({
+                            url:'/app01/ajaxlogin/',
+                            type:'post',
+                            headers:{},
+                            data:$('#a').serialize(), //后台中user=alex&pwd=123456&csrftoken=aaaa
+                            dataType:"JSON", //控制接收的数据类型
+                            success:function(args){
+                                if (args.status){
+
+                                }
+                                else{
+                                    $.each(args.msg,function(index,value){
+                                        console.log(index,value);
+                                        var tag = document.createElement("span");
+                                        tag.innerText = value[0];
+                                        tag.className = 'm1';
+                                        $('#a').find("input[name = '"+index+"']").after(tag);
+                                    })
+                                }
+                            }
+                        })
+                    }
+                </script>
+            
+                    //$.each相当于
+                    //function myeach(list,func){
+                    // for(var i in list){
+                    //     var ret = func(i,list[i])
+                    //     if (ret == false){
+                    //          return;}
+                    // }
+                    // }
+                    // $.each(array,function(k,v){
+                    //     if (k == 2){
+                    //         return; //相当于continue,跳过这次循环
+                    //         // return false; //相当于break,跳出整个循环
+                    //     }
+                    //     console.log(k,v);
+                    // })
+            
+
+    -用于做规则验证的Form 字段(详见https://www.cnblogs.com/wupeiqi/articles/6144178.html)
+        #内置格式
+        -IntegerField(required = True(default),
+                      error_messages = {'required':'不能为空',
+                                        'invalid':'格式错误,必须是数字', 
+                                        'min_value':'必须大于xxx',
+                                        'max_value':'必须小于xxx',
+                                        })
+        -EmailField(error_messages = {'required':'不能为空',
+                                      'invalid':'必须是邮箱格式',
+                                      'max_length':'太长',
+                                      'min_length':'太短',}
+                                        )
+        -URLField()
+        -SlugField()
+        -GenericIPAddressField()
+        -DateField()
+        -DateTimeField()
+        
+        #自定义格式(继承CharField)
+        -RegexField('139\d+',max_length = None,min_length = None,error_message = {'max_length':'...','invalid':'...' #正则匹配错误})
+        
+    
+    -用于生成html标签的字段(详见https://www.cnblogs.com/wupeiqi/articles/6144178.html)
+        Field
+            required=True,               是否允许为空
+            widget=None,                 HTML插件
+            label=None,                  用于生成Label标签或显示内容
+            initial=None,                初始值
+            help_text='',                帮助信息(在标签旁边显示)
+            error_messages=None,         错误信息 {'required': '不能为空', 'invalid': '格式错误'}
+            show_hidden_initial=False,   是否在当前插件后面再加一个隐藏的且具有默认值的插件（可用于检验两次输入是否一直）
+            validators=[],               自定义验证规则
+            localize=False,              是否支持本地化
+            disabled=False,              是否可以编辑
+            label_suffix=None            Label内容后缀
+        
+        -强大的组合参数的用法(用于自动生成标签):
+            #后端
+                from django.forms import widgets
+                class TesetForm(Form):
+                    t1 = fields.CharField(
+                    label = '用户名',    #用于生成Label标签或显示内容
+                    initial = '999'， # 初始值
+                    widget = widgets.Select,    #插件,帮助生成怎样的标签
+                    help_text='.....',  #帮助信息
+                    show_hidden_initial = False,   #是否在当前插件后面再加一个隐藏的且具有默认值的插件（可用于检验两次输入是否一直）
+                    validators=[...], #里面写正则表达式
+                    localize=False,   #是否支持本地化
+                    disabled=False,   #是否可以编辑
+                    label_suffix=':'  #Label内容后缀,默认是None) 
+                    
+                def login(request):
+                    obj = TestForm()
+                    return render(request,'...',{'obj',obj})
+                    
+            #前端
+                #已经有name为t1的标签的时候
+                {{obj.t1.label}} '用户名'
+                {{obj.t1.help_text}} '.....'
+                
+                #没有name为t1的标签的时候(自动生成标签)
+                <p>
+                    {{obj.t1.label}}
+                    {{obj.t1}} 
+                    #自动生成标签,initial会设置input中的value值,
+                    #若obj = TestForm(),则通过{{obj.t1}}默认生成<input type = 'text' name = 't1'/>
+                    {{obj.help_text}}
+                </p>
+                
+                #有多个字段的情况
+                    {{obj.as_p}} #标签集体生成
+                    
+                    
+    -利用Form组件使得Form表单提交也像ajax一样实现使得用户输入信息得到保留
+        #后端（没有用户输入的情况)
+        class TestForm(Form):
+            t1 = fields.CharField(max_length = 32) #内部的__str__返回<input type = 'text' name = 't1'/>
+            t2 = fields.CharField(max_length = 32) <input type = 'text' name = 't2' />
+            
+            
+        #后端（有用户输入的情况）
+        class TestForm(Form):
+            t1 = fields.CharField(max_length = 32) #内部的__str__返回<input type = 'text' name = 't1' value = "userinput"/>
+            t2 = fields.CharField(max_length = 32) <input type = 'text' name = 't2' value = 'userinput'/>
+            
+            
+        def login(request):
+            if request.method == "GET":
+                obj = TestForm() #没有用户输入
+                return render(request,'',{'obj':obj})
+            else:
+                obj = TestForm(request.POST)  #有用户输入
+                if obj.isvalid():
+                    print(obj.cleaned_data)
+                    return redirect('')
+                else:
+                    v = obj.errors #字典在前端控制台中是{'t1':['error_message'],'t2':['error_message']}的形式
+                return render(request,'login.html',{'obj':obj})
+            
+            
+        #前端
+            <form id = 'a' method = 'POST' action = '/app01/login/'>
+                {% csrf_token %}
+                <p>
+                    {{obj.t1}}{{obj.errors.t1.0}}
+                </p>
+                <p>
+                    {{obj.t2}}{{obj.errors.t2.0}}
+                </p>
+                <input type = 'submit' value = '提交'/>
+
+            </form>
+            
+            
+    -标签样式定制
+        # 单radio，值为字符串
+        user = fields.CharField(
+            initial=2,
+            widget=widgets.RadioSelect(choices=((1,'上海'),(2,'北京'),))
+        )
+         
+        # 单radio，值为字符串
+         user = fields.ChoiceField(
+             choices=((1, '上海'), (2, '北京'),),
+             initial=2,
+             widget=widgets.RadioSelect
+         )
+         
+        # 单select，值为字符串
+         user = fields.CharField(
+             initial=2,
+             widget=widgets.Select(choices=((1,'上海'),(2,'北京'),))
+         )
+         
+        # 单select，值为字符串
+         user = fields.ChoiceField(
+             choices=((1, '上海'), (2, '北京'),),
+             initial=2,
+             widget=widgets.Select(attrs = {})
+         )
+         
+        # 多选select，值为列表
+         user = fields.MultipleChoiceField(
+             choices=((1,'上海'),(2,'北京'),),
+             initial=[1,],
+             widget=widgets.SelectMultiple
+         )
+        
+         
+        # 单checkbox
+         user = fields.CharField(
+             widget=widgets.CheckboxInput()
+         )
+         
+         
+        # 多选checkbox,值为列表
+         user = fields.MultipleChoiceField(
+             initial=[2, ],
+             choices=((1, '上海'), (2, '北京'),),
+             widget=widgets.CheckboxSelectMultiple
+         )
+         
+        --用例:
+            #后端
+            class TestForm(Form):
+                t1 = fields.CharField(
+                    widget = widgets.Textera(attrs={}))
+                    
+                t2 = fields.CharField(
+                    widget = widgets.CheckboxInput()
+                    )
+                    
+                t3 = fields.MultipleChoiceField(
+                    widget = widgets.CheckboxSelectMultiple
+                    choices = [(1,'篮球'),(2,'足球'),(3,'网球')]
+                    )
+                    
+                t4 = fields.ChoiceField( #Radio只能选择一个(互斥的)
+                choices = [(1,'篮球'),(2,'足球'),(3,'网球')],
+                widget = widgets.RadioSelect
+                  
+                  
+                t5 = fields.FileField(
+                    widget = widgets.FileInput
+                )
+                    
+            def test(request):
+                obj = TestForm(inital = {'t3':[1,2]})  #默认选中
+                return render(request,'test.html',{'obj':obj})
+            
+            
+            #前端
+                {{obj.t2}} #自动生成
+                {{obj.t3}}
+
+         
+    -下拉框数据从数据库获取
+        -方式1
+            from django.forms import Form
+            from django.forms import widgets
+            from django.forms import fields
+            from django.core.validators import RegexValidator
+             
+            class MyForm(Form):
+             
+                user = fields.ChoiceField(
+                    # choices=((1, '上海'), (2, '北京'),),
+                    initial=2,
+                    widget=widgets.Select
+                )
+             
+                def __init__(self, *args, **kwargs):
+                    super(MyForm,self).__init__(*args, **kwargs)
+                    # self.fields['user'].widget.choices = ((1, '上海'), (2, '北京'),)
+                    # 或
+                    self.fields['user'].widget.choices = models.Classes.objects.all().value_list('id','caption')
+
+        -方式2
+            from django import forms
+            from django.forms import fields
+            from django.forms import widgets
+            from django.forms import models as form_model
+            from django.core.exceptions import ValidationError
+            from django.core.validators import RegexValidator
+             
+            class FInfo(forms.Form):
+                authors = form_model.ModelMultipleChoiceField(queryset=models.NNewType.objects.all())
+                # authors = form_model.ModelChoiceField(queryset=models.NNewType.objects.all())
+
+                        
+                    
+    -自定义验证规则(详见https://www.cnblogs.com/wupeiqi/articles/6144178.html)
+        方法一:
+            from django.forms import Form
+            from django.forms import widgets
+            from django.forms import fields
+            from django.core.validators import RegexValidator
+             
+            class MyForm(Form):
+                user = fields.CharField(
+                    validators=[RegexValidator(r'^[0-9]+$', '请输入数字'), RegexValidator(r'^159[0-9]+$', '数字必须以159开头')],
+                ) 
+                
+        方法二:
+            import re
+            from django.forms import Form
+            from django.forms import widgets
+            from django.forms import fields
+            from django.core.exceptions import ValidationError
+             
+             
+            # 自定义验证规则
+            def mobile_validate(value):
+                mobile_re = re.compile(r'^(13[0-9]|15[012356789]|17[678]|18[0-9]|14[57])[0-9]{8}$')
+                if not mobile_re.match(value):
+                    raise ValidationError('手机号码格式错误')
+             
+             
+            class PublishForm(Form):
+             
+             
+                title = fields.CharField(max_length=20,
+                                        min_length=5,
+                                        error_messages={'required': '标题不能为空',
+                                                        'min_length': '标题最少为5个字符',
+                                                        'max_length': '标题最多为20个字符'},
+                                        widget=widgets.TextInput(attrs={'class': "form-control",
+                                                                      'placeholder': '标题5-20个字符'}))
+             
+             
+                # 使用自定义验证规则
+                phone = fields.CharField(validators=[mobile_validate, ],
+                                        error_messages={'required': '手机不能为空'},
+                                        widget=widgets.TextInput(attrs={'class': "form-control",
+                                                                      'placeholder': u'手机号码'}))
+             
+                email = fields.EmailField(required=False,
+                                        error_messages={'required': u'邮箱不能为空','invalid': u'邮箱格式错误'},
+                                        widget=widgets.TextInput(attrs={'class': "form-control", 'placeholder': u'邮箱'}))
+
+                            
+Form组件总结
+    1.源码流程+局部钩子
+        from django.core.exceptions import ValidationError
+        class Foo(Form):
+            user = field.CharField() #正则，插件
+            pwd = field.CharField()
+
+            
+            #不能用pwd相关的值，因为是按照user,pwd的顺序将pwd添加到self.clean_data中的
+            def clean_user(self):
+                v = self.cleaned_data['user'] #获取用户名
+                if models.Student.objects.filter(name = v).count()
+                    raise ValidationError('用户名已存在',code = 'require...')  #core 默认invalid
+                return self.clean_data['user']
+                
+            def clean_pwd(self):
+                return self.cleaned_data['pwd']
+                
+            #自定义功能(在所有用户的值都拿到了，适合做整体的验证)
+            def clean(self):
+                user = self.clean_data.get('user')
+                email  = self.clean_data.get('email')
+                if models.Student.objects.filter(user = user,email = email).count()
+                    riase ValidationError('用户名已存在')
+                return self.cleaned_data
+                
+            #完全自己写(一般不用)
+            def _post_clean(self):
+                pass
+                
+                
+                
+    2.页面展示
+        obj = Foo() #没有具体的默认值
+        obj = Foo(initial={}) #无数据，指定具体字段的默认值，有html标签，不会校验,没有错误信息
+        obj = Foo(data = request.POST) #有数据，有html标签，会校验有错误信息
+        
+        #灵活
+        <form>
+            {{obj.xx}}
+            {{obj.xx}}
+            {{obj.xx}}
+            {{obj.xx}}
+        </form>
+        
+        
+        #简单(样式调整比较费劲)
+        {{obj.as_p}}
+        <ul>
+            {{obj.as_ul}} #结合之前讲的组合参数一起使用
+        </ul>
+        <table>
+            {{obj.as_table}}
+        </table>
+               
+               
+    3.后台
+        is_valid()
+        cleaned_data
+        errors
+        
+    4.本质
+        class Input:
+            def init(self,attrs,value):
+                self.attrs = {}
+                
+                
+            def __str__(self)
+               <input 添加attrs中的属性 value = ''/>
+                
+文件上传
+    -普通方式
+    #后端
+        def f1(request):
+            if request.method == "GET":
+                return render(request,'f1.html')
+            else:
+                import os
+                #普通文本放在request.POST中(用户提交的用户名等数据)
+                file_obj = request.FILES  #{'fafafa':[文件对象]}
+                filename = file_obj.name
+                filesize = file_obj.size
+                f = open(os.path.join('static',filename),'wb') #以后直接通过127.0.0.1:8000/static/....png就能访问文件
+                for chunk in file_obj.chunks(): #文件一点一点拿到
+                    f.write(chunk)
+                f.close()
+                return render(request,'f1.html')
+        
+        #前端
+        <form method = 'POST' action = '/f2/' enctype = "multipart/form-data"> #必须加上这个enctype
+            {%csrf token%}
+            <input type = 'file' name = "fafafa"/>
+            <input type = "submit" value="提交"/>
+        </form>
+
+
+
+    -用Form组件
+        #后端
+        class F2Form(Form):
+            user = fields.CharField()
+            fafafa = fields.FileField()
+            
+        def f2(request):
+            if request.method == 'GET':
+                obj = F2Form()
+                return render(request,'f2.html',{'obj':obj})
+            else:
+                obj = F2Form(data = request.POST,files = request.FILES)
+                if obj.is_valid():
+                    print(obj.cleaned_data.get('fafafa').name) #上传的是一个文件对象
+                    print(obj.cleaned_data.get('fafafa').size)
+                return render(request,'f2.html',{'obj':obj})
+                
+                
+        #前端
+        <form method = 'POST' action = '/f2/' enctype = "multipart/form-data">
+            {%csrf token%}
+            {{obj.user}}
+            {{obj.fafafa}}
+            <input type = "submit" value="提交"/>
+        </form>
+                
+                
+                
+                
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

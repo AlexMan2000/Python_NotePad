@@ -1,0 +1,38 @@
+-FBV
+	-局部禁用
+		from django.views.decorators.csrf import csrf_exempt
+		
+		@csrf_exempt
+		def csrf1(request):
+			if request.method == "GET":
+				return render(request,'csrf1.html')
+			else:
+				return render(request,'app01index.html')
+		
+	
+	-局部使用
+		from django.views.decorators.csrf import csrf_protect
+		@csrf_protect
+		def csrf1(request):
+			if request.method == "GET":
+				return render(request,'csrf1.html')
+			else:
+				return render(request,'app01index.html')
+				
+				
+-CBV
+	from django.utils.decorators import method_decorator
+	
+	#只有以下两种
+		#对类中的所有方法应用上装饰器
+		@method_decorator(csrf_protect,name='dispatch')
+		#给类中的某个方法加装饰器,给get上加,因为是基于反射
+		@method_decorator(csrf_protect,name = 'get')
+		class HomePage(View):
+			
+			def get(self,request,*args,**kwargs):
+				return render(request,'homepage.html')
+
+			def post(self,request,*args,**kwargs):
+				print(request.POST.get("user"))
+				return HttpResponse("你好呀")

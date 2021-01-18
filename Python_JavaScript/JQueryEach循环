@@ -1,0 +1,10 @@
+function f1(){
+$.each([11,22,33,44],function(k,v){
+		(if(k==2){
+			return;
+		}
+		})
+		);
+		
+jquery 绑定函数
+$(...).on('click',function(){})

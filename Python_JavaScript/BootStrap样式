@@ -1,0 +1,28 @@
+1.Bootstrap
+	1.样式类
+		0.包含在<div class="container">中
+		1.栅格系统
+			1.每一行包含在<div class="row"> 中
+			2.自定义占比
+				浏览器端
+					col-md-1
+				移动端
+					col-xs-4
+			3.列偏移
+				浏览器端
+					col-md-offset-2
+				移动端
+					col-xs-offset-3
+		2.small标签（二级标签）
+			<h1>嘿嘿<small>Secondary</small></h1>
+		3.mark标签
+			<h1>嘿嘿<small>Secondary <mark>haha</mark>Text</small></h1>
+		4.del标签
+			<del>嘿嘿</del>
+		5.strong标签:黑体
+		6.em标签：斜体
+		7.改变大小写,首字母大写
+			<p class='text-lowercase/uppercase/capitalize'>嘿嘿</p>
+		8.缩略语
+			<addr title='attribute'>attr</addr>
+		9. 

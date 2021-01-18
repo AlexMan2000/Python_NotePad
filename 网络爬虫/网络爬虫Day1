@@ -1,0 +1,23 @@
+import requests 
+from bs4 import BeautifulSoup
+from lxml import etree
+headers={
+   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537\
+   .36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.18363'}
+r=requests.get('https://dig.chouti.com/',headers=headers)
+text=r.text
+soup=BeautifulSoup(text,'html.parser')
+content_list=soup.find_all('div',attrs={'class':'extra'})#用attrs能够更好的找到标签
+print(content_list)
+
+
+#模拟登录
+data={'password':'alexman19800','loginType':2,'phone':'+8613816383342'}
+r=requests.post('https://dig.chouti.com/'data=data)
+print(r.text)#成功返回9999
+
+print(r.cookies.get_dict())#获取cookies维持登录
+
+
+r3=requests.post(url=,headers=headers,cookies=r2.cookies.get_dict())
+print(r3.text)

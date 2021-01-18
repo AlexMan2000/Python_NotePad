@@ -1,0 +1,1025 @@
+ORM
+
+1. ORM框架: SQLAlchemy(自动生成sql语句)
+	-导包
+		from sqlalchemy.ext.declarative import declarative_base
+		from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint, Index
+		from sqlalchemy.orm import sessionmaker, relationship
+		from sqlalchemy import create_engine
+	- 作用:
+		1.提供简单的规则
+		2.自动转换成SQL语句
+		
+		
+	- DB first: 手动创建数据库以及表 -> ORM框架 ->自动生成类
+	- code first : 手动创建数据库和类 -> ORM框架 -> 手动创建表 (SQLAlchemy)
+	
+	ORM对应关系:
+	类---->数据表
+	对象---->数据行
+	属性---->字段
+	
+	
+	ORM能做的事:
+	1.操作数据表   创建、删除、修改表
+	2.操作数据行    数据的增删改查
+	不能创建数据库，自己动手创建数据库
+	
+	
+	a.功能
+		-创建数据库表(见MYSQL_Alchemy_02_创建数据表.py)
+			-连接数据库(是pymysql做的连接 )
+			-把类转换成sql语句
+		
+		-操作数据行(表已创建)
+			engine = create_engine("mysql+pymysql://root:123@127.0.0.1:3306/db2", max_overflow=5) max_overflow相当于建立了一个连接池
+			Session = sessionmaker(bind=engine)
+			session = Session()
+			增
+				-单行添加
+					obj1 = UserType(title = "普通用户")
+					session.add(obj)
+					session.commit()
+					session.close()
+					
+				-多行添加
+					objs = [
+					UserType(title = "超级用户"),
+					UserType(title = "白金用户",
+					UserType(title = "黑金用户"),
+					]
+					session.add_all(objs)
+					session.commit()
+					session.close()
+					
+			删(先查再删)
+				user_type_list = session.query(UserType).filter(UserType.id > 2).delete()
+				session.commit()
+				session.close()
+			
+			改
+				#更新的类型不一样,synchronize_session参数的值就不一样
+				user_type_list = session.query(UserType).filter(UserType.id > 0).update({Usertype.title:"黑金"})
+				user_type_list = session.query(UserType).filter(UserType.id > 0).update({"title":"黑金"})
+				user_type_list = session.query(UserType).filter(UserType.id > 0).update({Usertype.title:UserType.title+"X",synchronize_session = False})
+				user_type_list = session.query(UserType).filter(UserType.id > 0).update({Usertype.id:UserType.id+2,synchronize_session = "evalute"})
+				session.commit()
+				session.close()
+			
+			查
+				#session.query(UserType)就是一个sql语句对象
+				#（select usertype.id as usertype_id,usertype.title as usertype_title from usertype)
+				#all就是全部取出来(相当于fetachall()),user_type_list里面的每一项都是usesrtype的一个对象，代表usertype的每一行
+				
+				user_type_list = session.query(UserType).all()
+				for row in user_type_list:
+					print(row.id,row.title) 就可取出
+					
+				console:	1 普通用户
+							2 超级用户
+							3 白金用户
+							4 黑金用户
+					
+					
+				#filter相当于一个where
+				#select xxx UserType where
+				user_type_list = session.query(UserType).filter(UserType.id > 2)
+				for row in user_type_list:
+					print(row.id,row.title) 就可取出
+					
+				console:	3 白金用户
+							4 黑金用户
+				
+	
+2.SQLAlchemy查询（包含子查询) 
+	#　条件
+		ret = session.query(Users).filter_by(name='alex').all()
+		ret = session.query(Users).filter(Users.id > 1, Users.name == 'eric').all()  #,就是and
+		ret = session.query(Users).filter(Users.id.between(1, 3), Users.name == 'eric').all()
+		ret = session.query(Users).filter(Users.id.in_([1,3,4])).all()
+		ret = session.query(Users).filter(~Users.id.in_([1,3,4])).all()   #~就是not
+		ret = session.query(Users).filter(Users.id.in_(session.query(Users.id).filter_by(name='eric'))).all() #子查询
+		from sqlalchemy import and_, or_
+		ret = session.query(Users).filter(and_(Users.id > 3, Users.name == 'eric')).all()  #默认不写的话,逗号表示and
+		ret = session.query(Users).filter(or_(Users.id < 2, Users.name == 'eric')).all()
+		ret = session.query(Users).filter(
+			or_(
+				Users.id < 2,
+				and_(Users.name == 'eric', Users.id > 3),
+				Users.extra != ""
+			)).all()
+
+
+	# 通配符
+		ret = session.query(Users).filter(Users.name.like('e%')).all()
+		ret = session.query(Users).filter(~Users.name.like('e%')).all()
+
+	# 限制
+		ret = session.query(Users)[1:2]
+
+	# 排序
+		ret = session.query(Users).order_by(Users.name.desc()).all()
+		ret = session.query(Users).order_by(Users.name.desc(), Users.id.asc()).all()
+
+	# 分组
+		from sqlalchemy.sql import func #func是聚合函数
+
+		ret = session.query(Users).group_by(Users.extra).all()
+		ret = session.query(
+			func.max(Users.id),
+			func.sum(Users.id),
+			func.min(Users.id)).group_by(Users.name).all()
+
+		ret = session.query(
+			func.max(Users.id),
+			func.sum(Users.id),
+			func.min(Users.id)).group_by(Users.name).having(func.min(Users.id) >2).all()
+
+
+	# 连表（join）
+		
+		ret = session.query(Users, Favor).all() #返回笛卡尔积
+		
+		ret = session.query(Users, Favor).filter(Users.id == Favor.nid).all() #相当于inner join
+
+		ret = session.query(Person).join(Favor).all()  #相当于left inner join, 左表数据行比右表多的时候只显示右表有的
+
+		ret = session.query(Person).join(Favor, isouter=True).all()  #相当于left outer join，左表数据行全部显示
+
+
+
+	#子查询 
+		(  select * from (select * from tb) as B  )
+		q1 = session.query(UserType).filter(Usertype.id>2).subquery()
+		q2 = session.query(q1).filter(Usertype.id <5).all()
+		
+		(  select id, (select * from userinfo) from usertype )
+		result = session.query(Usertype.id,session.query(UserInfo).subquery()).all()  #返回笛卡尔积,因为先循环子查询的结果
+		
+		
+		#subquery查询出来的是一张表,所以任何链表操作都会返回笛卡尔积的形式(只有元素scalar()之后才能和row对象结合,否则还是会有笛卡尔积)
+		#as_scalar返回的是具体的一个元素
+		(select id, (select * from users where users.user_type_id == usertype.id)
+		result = session.query(UserType.id,session.query(Users).filter(Users.user_type_id == UserType.id).as_scalar())
+		
+		
+		
+
+	# 组合
+		q1 = session.query(Users.name).filter(Users.id > 2)
+		q2 = session.query(Favor.caption).filter(Favor.nid < 2)
+		ret = q1.union(q2).all()
+
+		q1 = session.query(Users.name).filter(Users.id > 2)
+		q2 = session.query(Favor.caption).filter(Favor.nid < 2)
+		ret = q1.union_all(q2).all()
+		
+		
+	#relationship
+	
+		Users表
+			id    name      title    user_type_id
+			1     alex     aoao           1
+			2	  root     xixi           2
+			3     haha     atat           2
+			
+		UserType表
+		
+			id    title
+			 1     黑金1x
+			 2     黑金2x
+	
+	
+		#问题1：获取用户信息以及与其相关联的用户类型名称 
+			user_list = session.query(Users,UserType).join(UserType,isouter = True).all()
+			#连表获得的结果是[(Users对象,UserType对象),(Users对象,UserType对象)]
+			for row in user_list:
+				print(row[0].id,row[0].name,row[0].email,row[0].user_type,row[1].title)
+			
+			
+			#这个就是相当于sql标准的链表操作
+			user_list = session.query(Users.name,UserType.title).join(UserType,isouter = True).all()  #不加all就相当于迭代器,每一次迭代都会生产对象,慢慢写入内存
+			#连表获得的结果是[(元素值对象,元素值对象),(元素值对象,元素值对象)]
+			for row in user_list:
+				print(row[0],row[1],row.name,row.title)
+
+				alex 黑金1x  alex 黑金1x
+				root 黑金2x  root 黑金2x
+				
+				
+			#解决方法
+				class Users(Base):
+					__tablename__ = 'users' #真正出现在数据库中的表名
+					id = Column(Integer, primary_key=True)
+					name = Column(String(32))
+					extra = Column(String(16))
+					user_type_id = Column(Integer,ForeignKey("usertype.id"))
+		
+					user_type = relationship("UserType",backref = "users")  #根据外键创建关系,UserType可以通过backref = users来获取数据
+					__table_args__ = ( #列的一些额外参数，指定列的属性
+						UniqueConstraint('id', 'name', name='uix_id_name'), #联合唯一
+						Index('ix_id_name', 'name', 'extra'), #联合索引
+					)
+
+				class UserType(Base):
+					__tablename__ = 'usertype'
+					id = Column(Integer, primary_key=True)
+					title = Column(String(32))
+						
+						
+						
+			#操作
+				result = session.query(Users)
+				for row in result:
+					print(row.name,row.id,row.user_type.title)
+					
+					alex 1 <__main__.UserType object>
+					root 2 <__main__.UserType object>
+					
+					
+					
+		#问题2:  获取用户类型
+			class Users(Base):
+					__tablename__ = 'users' #真正出现在数据库中的表名
+					id = Column(Integer, primary_key=True)
+					name = Column(String(32))
+					extra = Column(String(16))
+					user_type_id = Column(Integer,ForeignKey("usertype.id"))
+		
+					user_type = relationship("UserType",backref = "users")  #根据外键创建关系,UserType可以通过backref = users来获取数据
+					__table_args__ = ( #列的一些额外参数，指定列的属性
+						UniqueConstraint('id', 'name', name='uix_id_name'), #联合唯一
+						Index('ix_id_name', 'name', 'extra'), #联合索引
+					)
+
+			class UserType(Base):
+				__tablename__ = 'usertype'
+				id = Column(Integer, primary_key=True)
+				title = Column(String(32))
+				
+				
+						
+			Users表
+				id    name      title    user_type_id
+				1     alex     aoao           1
+				2	  root     xixi           2
+				3     haha     atat           2		
+			
+			#正向(Users => UserType)
+			user_type = relationship(backref = "users)
+			每一行的obj.user_type     name   user_type_id			id     title
+									  alex        1         ==>      1    黑金1x
+				
+				
+				
+			UserType表
+			
+				id    title
+				 1     黑金1x
+				 2     黑金2x
+				 
+			#反向(UserType => Users)
+			每一行的obj.users  =>  [obj,obj,...]
+						   
+			
+			
+			
+			
+			
+			#一般方法
+				type_list = session.query(UserType)
+				for row in type_list:
+					print(row.id,row.title,session.query(Users).filter(Users.id == UserType.id).all())
+					
+					1 黑金1x [<__main__.Users object>]
+					2 黑金2x [<__main__.Users object>,<__main__.Users object>]
+			
+			
+			
+			#运用relationship(谁有forignkey就写在谁里面)
+				type_list = session.query(UserType)
+				for row in type_list:
+					print(row.id,row.title,row.users)
+					
+					1 黑金1x [<__main__.Users object>]
+					2 黑金2x [<__main__.Users object>,<__main__.Users object>]
+			
+				#relationship做了两件事情:
+					-正向操作(有外键=>无外键)
+					-反向操作(无外键=>有外键)
+						
+				
+				
+
+	
+	
+3.使用Django的ORM
+	#简介
+		ORM默认利用pymysql第三方工具连接数据库
+		默认:
+			SQLlite
+		MySQL:
+			mysql -> MySQLDB(需要修改django默认连接方式)
+
+
+	#详细步骤
+	1.自己动手创建数据库
+	2.在Django项目settings.py中设置连接数据库的相关配置
+		DATABASES = {
+		'default': {
+			'ENGINE': 'django.db.backends.mysql',
+			'NAME': 'db2',
+			'USER':'root',
+			'PASSWORD':'123456',
+			'HOST':'localhost',
+			'PORT':3306
+			}
+		}
+		
+		
+	3.告诉Django用pymysql代替MySQLDB(不支持python3)连接数据库
+		在项目同名的package下的__init__中设置
+			import pymysql
+			#告诉Django用pymysql代替MySQLDB(不支持python3)连接数据库
+			pymysql.install_as_MySQLdb()
+	
+	
+	
+	4.在app下面的models.py文件中定义一个类，其必须继承models.Model
+		from django.db import models
+		class UserInfo(models.Model):
+			nid = models.AutoField(primary_key = True) #自增字段(int),BigAutoField()
+			username = models.CharField(max_length = 32)s
+			password = models.CharField(max_length = 64)
+			
+			
+	5.在settings.py中注册app
+		INSTALLED_APPS = [
+			'django.contrib.admin',
+			'django.contrib.auth',
+			'django.contrib.contenttypes',
+			'django.contrib.sessions',
+			'django.contrib.messages',
+			'django.contrib.staticfiles',
+			'app01',
+		]
+			
+	6.创建数据库表
+        -快速入门
+            #创建用户组
+            class UserGroup(models.Model):
+                title = models.CharField(max_length=32)
+
+            #创建外键表
+            class UserInfo(models.Model):
+                nid = models.AutoField(primary_key = True) #自增字段(int),BigAutoField()
+                user = models.CharField(max_length = 32)
+                password = models.CharField(max_length = 64)
+                # age = models.IntegerField(null = True) #可以为空
+                age = models.IntegerField(default=100) #默认为1
+                #ug_id
+                ug = models.ForeignKey("UserGroup",null = True,on_delete=models.CASCADE)
+
+            执行两个命令
+                1.python manage.py makemigrations
+                2.python manage.py migrate
+        
+        
+        
+        -特殊字段设置(django专用)
+            -models.py
+            class SpecialField(models.Model):
+                username = models.CharField(max_length=32)
+                email = models.EmailField()
+                
+                
+            #字符串类
+                IPAddressField(Field)
+                URLField(CharField) 
+            #时间类
+                #详见博客
+            
+            
+          
+            a.直接通过create无影响
+                models.UserInfo.objects.create(...)
+                --ModelForm(之后讲)
+            
+            b.影响Django自带的管理工具admin
+                -创建超级用户
+                    在terminal中输入python manage.py createsuperuser
+                    设置用户名密码然后登陆
+                    
+                -在django.app02.admin.py中注册表所在的类
+                    from app02 import models
+                    admin.site.register(models.UserInfo)
+                    
+                -在admin网站中添加数据就会收到格式校验的约束
+                    
+                    
+                    
+        -设置字段参数(详见博客)
+            -对数据库的列的约束
+                null = True/False 是否为空
+                default = '1111'默认值
+                db_index = True 是否创建该列索引
+                unique = True 该列是否为唯一索引
+                
+                class Meta:
+                    #联合唯一索引
+                    unique_together = (
+                        ('email','ctime'),
+                        )
+                        
+                    #联合索引
+                    index_together = (
+                        ('email','ctime'),
+                        )
+                        
+            -对admin的参数(不做重点要求)
+                blank = True  admin中这一列是否为空
+                verbose_name = '用户名'  设置admin这一列的提示文字
+                详见博客
+            
+        -常用提炼
+            -不考虑DjangoAdmin
+                -常用字段提炼(必须了解)
+                    class UserInfo(models.Model):
+                        username = models.CharField(max_length = 32)
+                        username = models.IntegerField() #还有SmallIntegerField,详见博客
+                        username = models.DecimalField()
+                        username = models.DateTimeField()
+                        username = models.DateField()
+                        color_list = (
+                            (1,'黑色'),
+                            (2,'白色'),
+                            (3,'蓝色')
+                            )
+                        username = models.IntegerField(choices = color_list)
+                        
+                        
+                -常用参数提炼
+                    null = True
+                    default = 'xx'
+                    db_index = True
+                    unique = True
+                    primary_key = True
+                    max_length = 32
+                    class Meta:
+                        unique_together = (
+                        ('id','name')
+                        )
+                        
+                        index_together = (
+                        ('id','name')
+                        )
+            
+            -考虑DjangoAdmin
+                字段:
+                    做邮箱正则验证
+                    邮箱
+                    IPAddressField
+                    URLField
+                参数:
+                    blank
+                    error_message{}
+                    validators = {
+                        自定义正则
+                    }
+                
+          
+	7.操作数据行
+		#增
+		models.UserGroup.objects.create(title = "销售部")
+		models.UserInfo.objects.create(user = 'root',password='pwd',age = 33,ug_id = 1)
+		
+		objs = [
+			models.UserInfo(name = 'r11'),
+			models.UserInfo()name = 'r22'),
+			...
+			]
+		models.UserInfo.objects.bulk_create(objs,10) #依次最多提交10次
+
+
+
+		#查找
+		-filter
+			result1 = models.UserGroup.objects.all()
+			result1 = models.UserGroup.objects.filter(id = 1).all()
+			result1 = models.UserGroup.objects.filter(id__gt = 1).all() #大于1
+			result1 = models.UserGroup.objects.filter(id__lt = 1).all() #小于1
+			print(result1) #返回QuerySet数据类型
+			
+			
+		-in_bulk
+			result1 = models.UserInfo.in_bulk([1,2,3]) #根据主键进行查询，相当于filter(id__in=[1,2,3]))
+		
+		-contains/icontains
+			models.UserInfo.objects.filter(name__contains="ven")
+			models.UserInfo.objects.filter(name__icontains="ven") # icontains大小写不敏感
+			models.UserInfo.objects.exclude(name__icontains="ven")
+			
+		-startswith/endswith/istartswith/iendswith
+			models.UserInfo.objects.filter(name__startswith="ven")
+			models.UserInfo.objects.filter(name__iendswith="ven") # iendswith大小写不敏感
+			
+		-正则表达式
+			models.UserInfo.objects.get(title__regex=r'^(An?|The) +')
+			models.UserInfo.objects.get(title__iregex=r'^(an?|the) +') #iregex大小写不敏感
+
+
+
+		#删除
+		models.UserGroup.objects.filter(id = 2).delete()
+
+
+
+		#更新
+		models.UserGroup.objects.filter(id = 2 ).update(title = '公关部')
+		
+		
+		
+		#不存在就创建
+			#如果存在就返回结果，不存在就创建,defaults就是额外添加的数据
+		models.UserInfo.objects.get_or_create(id = 2,name = 'xxx',defaults = {'email':'xxxxx'}) 
+		
+		
+		#是否存在
+		ret = models.UserInfo.exists(id = 2) #返回True/False
+		
+		
+			
+		
+	8.连表操作(外键与查询，正向与反向连接)
+		
+		class Foo(models.Model):
+			caption = models.CharField(max_length=16)
+
+
+		class UserType(models.Model):
+			title = models.CharField(max_length=32)
+			fo = models.ForeignKey("Foo",null = True,on_delete=models.CASCADE)
+
+
+		class UserInfo(models.Model):
+			name = models.CharField(max_length = 32)
+			age = models.IntegerField(default=100) #默认为1
+			ut = models.ForeignKey("UserType",null = True,on_delete=models.CASCADE)
+		
+		
+		Foo 表(反向连接到UserType表)
+			id   caption
+			
+		
+		UserType 表(反向连接到UserInfo表)
+			id    	 title      fo_id(外键，正向连接到Foo表)
+			1		普通用户     
+			2		二逼用户
+			3		牛逼用户
+			
+			
+		UserInfo 表
+			id		name	   age		ut_id(外键，正向连接到UserType表)
+			 1	   Arthur       25        1
+			 2	    Peter       28        2
+			 3		王五        35        2
+			 4		Michael     25        3
+			 5		李四        25        3
+			 6		张三        25        1
+    
+		
+		#链式访问
+			-正向连接(UserInfo => UserType)
+				result = models.UserInfo.objects.all()
+				for obj in result:
+					print(obj.name,obj.age,obj.ut_id,obj.ut.title,obj.ut.fo.caption)
+				
+			-反向连接(UserType => UserInfo)
+				obj = models.UserType.objects.all().first()   #first返回一个obj
+				#因为一个用户类型有多个用户对应，所以可以对每一行obj.userinfo_set.all()
+				for row in obj.userinfo_set.all():  
+					print(row.name,row.age)
+					
+					Arthur   25
+					张三      1
+					
+					
+			-默认返回对象(可以跨表)
+				models.UserInfo.objects.all()
+				#QuerySet [obj,obj,...]
+			
+			
+			-values获取字典类型
+				models.UserInfo.objects.all().values('id','name') #这种方式不能跨表
+				#QuerySet [{'id':'xx','name':'xx'},{...},{...}]
+				
+				
+				models.UserInfo.objects.all().values('id','name','ut__title') #这种方式能跨表
+				#QuerySet [{'id':'xx','name':'xx','ut__title':'xxx'},{...},{...}]
+					
+					
+			-values_list获取列表和元组类型
+				models.UserInfo.objects.all().values_list('id','name') #这种方式不能跨表
+				#QuerySet [('xx','name'),(...),(...)]
+				
+				models.UserInfo.objects.all().values_list('id','name','ut__title') #这种方式不能跨表
+				#QuerySet [('xx','name','xxx'),(...),(...)]
+				
+				
+				
+	9.ORM约束
+		-排序:
+			result = models.UserInfo.objects.all().order_by('id') #相当于order by 字段 asc
+			result = models.UserInfo.objects.all().order_by('-id') #相当于 order by 字段 desc
+		
+			result = models.UserInfo.objects.all().order_by('id','name') #多字段排序
+			
+		-分组:
+			#调用聚合函数annotate
+			from django.db.models import Count
+				result = models.UserInfo.objects.values("ut_id").annotate(alias = Count("ut_id")) #以ut_id为列聚合
+				result = models.UserInfo.objects.values("ut_id").annotate(alias = Sum("ut_id")) #以ut_id为列聚合
+				
+				
+			#二次筛选(having)
+			result = models.UserInfo.objects.values("ut_id").annotate(alias = Sum("ut_id")).filter(alias__gt=2) #filter出现在后面相当于having
+			
+			
+			#二次筛选(where 和 having)
+			result = models.UserInfo.objects.filter(id__gt=2).values("ut_id").annotate(alias = Sum("ut_id")) #filter出现在前面相当于where
+			
+			
+			#其他条件判断(filter条件与条件之间默认是and.如果要用or,用Q方法)
+			models.UserInfo.objects.filter(id__gt=1) #where id > 1
+			models.UserInfo.objects.filter(id__lt=3,id__gt=0) #where id < 3 and id >0
+			models.UserInfo.objects.filter(id__lte=1) #where id <= 1
+			models.UserInfo.objects.filter(id__gte=1) 
+			models.UserInfo.objects.filter(id__in=[1,2,3]) # where id in (1,2,3)
+			models.UserInfo.objects.filter(id__range = [1,2]) #where id in (1,2,3)
+			models.UserInfo.objects.filter(name__startswith='xxxx')  
+			models.UserInfo.objects.filter(name__endswith= 'xxxx')
+			models.UserInfo.objects.filter(name__contains ='xxxx')
+			models.UserInfo.objects.filter(name=None)
+			models.UserInfo.objects.filter(name__isnull =True)
+			models.UserInfo.objects.exclude(id = 1) #除了1以外的
+			
+			
+		-高级操作(Q/F)
+			#Q函数
+				-直接使用
+					from django.db.models import Q
+						models.UserInfo.objects.filter(Q(id = 1)|Q(name = 'alex')|Q(is = 5))
+						models.UserInfo.objects.filter(Q(id = 1)&Q(name = 'alex')&Q(is = 5))
+				-对象使用(嵌套逻辑),组合搜索很方便,推荐
+					q1 = Q()
+					q1.connector = "OR" #设置后续连接符号全部为or
+					q1.children.append(('id',1))
+					q1.children.append(('id',10))
+					q1.children.append(('id',9)) 
+					
+					q2 = Q()
+					q2.children.append(('b1',1))
+					q2.children.append(('b1',10))
+					q2.children.append(('b1',9))
+					
+					con = Q()
+					con.add(q1,'AND')
+					con.add(q2,'AND')
+					
+					-用例
+						#condition = {
+							'k1':[1,2,3,4],
+							'k2':[1,],
+							'k3':[11,],}
+							
+						con = Q()
+						for k,v in condition.items():
+							q = Q()
+							q.connector = "OR"
+							for i in v:
+								q.children.append('id',i)
+							con.add(q,'AND')
+						
+						models.UserInfo.objects.filter(con)
+					
+				
+				
+			#传参技巧
+			condition = {
+				'id':1,
+				'name':'root'
+				}
+			models.UserInfo.objects.filter(**condition) #**自动封装成id = 1,name = 'root'
+			
+			
+			
+			#F函数
+			from django.db.models import F
+				models.UserInfo.objects.all().update(age = F("age")+1) #这里F函数会获取元素原来的值,使得所有age自加1
+			
+			
+			#Extra函数
+				(select id ,name,(select count(1) from tb) as n from xb)
+				
+				#select参数添加选择列(如count(1)),count(1)返回统计个数，可以和where一起筛选对应筛选条件的个数, 
+				result = models.UserInfo.objects.all().extra(select = {'n':'select count(1) from tb'})
+					for row in result:
+						print(row.id,row.name,row.n)
+						
+				#select_params可以依次填入select部分的参数
+				result = models.UserInfo.objects.all().extra(select ={"n": "select count(1) from app02_userinfo where id> %s and id < %s"},select_params=[15,20])
+	
+	
+				#where列表中元素之间用and连接,params填入where部分的参数
+				result =models.UserInfo.objects.all().extra(where = ['id=1 or id = %s',"name = 'alex'"],params = [1,])
+				
+				#order_by排序
+				result =models.UserInfo.objects.all().extra(where = ['id=1 or id = %s',"name = 'alex'"],params = [1,],order_by=['-id'])
+
+				#tables 表的连接,where加条件
+				result =models.UserInfo.objects.all().extra(
+														tables = ['app02_userinfo'],where=['app02_usertype.id = app02_userinfo.ut_id'])
+
+				总结extra使用:
+					models.UserInfo.objects.extra(self,select=None,where = None,params = None,tables = None,order_by = None,select_params = None)
+					# a. 映射
+						# select
+						# select_params = None
+						# select 字段 from 表
+					# b. 条件
+						#where = None
+						#params = None
+						select * from 表 where 此处
+						
+					# c.表已创建
+						# tables
+						# select * from 表,此处
+						
+					# d.排序
+						#order_by = None
+						# select * from 表 order by 此处
+						
+					#用例
+					models.UserInfo.objects.extra(
+						select = {'newid':'select count(1) from app02_usertype where id > %s},
+						select_params = [1,],
+						where = ['age>%s'],
+						params = [18,],
+						order_by = ['-age'],
+						tables=['app02_usertype']
+					)
+					
+					select *, 
+					(select count(1) from app02_userinfo where id >1) as newid 
+					from app02_userinfo,app02_usertype 
+					where 
+						app02_userinfo.age >18 
+					order by 
+						app02_userinfo.age desc
+						
+						
+			#原生SQL语句
+				-内置
+					from django.db import connection,connections
+					
+					cursor = connection.cursor()
+					cursor = connection['default'].cursor()  #default就是在settings中定义的database相关
+					
+						
+					cursor.execute(select * from auth_user where id = %s,[1])
+					row = cursor.fetchone()
+					row = cursor.fetchall()
+						
+				-raw()
+					result = models.UserInfo.objects.raw('select * from userinfo',using = 'db2')  #using指定数据库
+					[obj(UserInfo),obj,...]
+					
+					#列名一样就会转换成正确不报错的UserInfo对象
+					result = models.UserInfo.objects.raw('select id,1 as name,2 as age, 4 as ut_id from usertype')
+					[obj(UserInfo),obj,...]
+					
+					
+					# 将获取的到列名转换为指定列名
+					name_map = {'first': 'first_name', 'last': 'last_name', 'bd': 'birth_date', 'pk': 'id'}
+					result = models.UserInfo.objects.raw('SELECT * from usertype', translations=name_map)
+					
+					
+					
+			#其他小细节
+				-reverse 
+					v = models.UserInfo.objects.all().order_by('-id','name').reverse() #相当于order_by('id','-name')
+				
+				
+				-only&defer
+			
+					v = models.UserInfo.objects.all()    [obj,...]
+					v = models.UserInfo.objects.all().only('id','name')   [obj,...]  #优化性能,少查询一点，加快时间,用了only，就写几个拿几个
+					v = models.UserInfo.objects.all().defer('id','name')  #除了这两列之外的所有列
+					v = models.UserInfo.objects.all().values('id','name')   [dict,...]  
+				
+				-using 
+					v = models.UserInfo.objects.all().using('db2') #聊个数据库有同名表的情况，通过using可以指定去哪个数据库查找
+				
+				
+				-链式编程
+					v = models.UserInfo.objects.all().filter().all().only()  #链式编程
+				
+				
+				-时间格式化(见博客)
+					v = models.UserInfo.objects.dates('ctime','day','DESC')
+                    
+                    
+                    
+            select_related(性能相关)
+                查询的时候主动连表，写谁关联谁
+                q = models.UserInfo.objects.all().select_related('ut')
+
+                q = models.UserInfo.objects.all().select_related('ut','gp')
+            
+            
+            prefetch_related(不做链表，多次查询)
+                q = models.UserInfo.objects.all().prefetch_related('ut','gp')
+                #select * from userinfo
+                #Django内部:ut_id = [2,4]
+                #select * from usertype where id in [2,4]
+                for row in q:
+                    print(row.id,row.ut.title) #这样跨表之后就不会再发查询请求了
+            
+					
+                    
+                    
+    10.Django多对多
+        Boy表
+            id      name
+            1       方少伟
+            2       由秦兵
+            3       陈涛
+            4       闫龙
+            
+        
+        
+        Girl表
+            id      name
+            1       小鱼
+            2       小周
+            3       小猫
+            4       小狗
+        
+        
+        Love表
+            id      b_id       g_id
+            1       1           1 
+            2       1           4
+            3       2           4
+            4       2           2
+            
+            
+            
+        1.查询和方少伟有关的女生
+            #SQL查询
+             #SELECT name from drf_test.app02_love
+                # left join drf_test.app02_girl
+                # on drf_test.app02_love.g_id = drf_test.app02_girl.id
+                # where b_id in (SELECT id FROM drf_test.app02_boy where name = "方少伟");
+                
+            #循环时跨表   
+                #Django ORM反向跨表查询
+                obj = models.Boy.objects.filter(name = "方少伟").first()
+                love_list = obj.love_set.all()
+                for row in love_list:
+                    print(row.g.name)  #小鱼，小狗
+                    
+                
+                #Django ORM跨表查询(循环时跨表)
+                love_list = models.Love.objects.filter(b__name = "方少伟")
+                for row in love_list:
+                    print(row.g.name)
+                
+                
+            #循环时不跨表
+                love_list = models.Love.objects.filter(b__name = "方少伟").values("g__name")
+                for row in love_list.items():
+                    print(row['g__name'])
+                    
+                    
+                love_list = models.Love.objects.filter(b__name = "方少伟").select_related('g')
+                for row in love_list:
+                    print(row.g.name)
+              
+        2. 限制一次约会
+            class Love(models.Model):
+                b = models.ForeignKey('Boy',null = True,on_delete=models.CASCADE)
+                g = models.ForeignKey('Girl',null = True,on_delete=models.CASCADE)
+                
+                # class Meta:
+                #     unique_together = [
+                #         ('b','g')
+                #     ]
+                
+                
+        3.Django自动生成ManyToManyField
+            #自动生成的只能有三列(id b_id g_id)
+            class Boy(models.Model):
+                name = models.CharField(max_length=32)
+                m = models.ManyToManyField('Girl')
+
+            class Girl(models.Model):
+                name = models.CharField(max_length=32)
+                # m = models.ManyToManyField('Boy')
+                
+                
+            obj = models.Boy.objects.filter(name = "方少伟").first()
+            print(obj.id,obj.name)
+            #添加外键数据,obj就是当前行对象,add(3)，就是在当前行添加与之关联的外键序号
+                obj.m.add(3)
+                obj.m.add(2,4)
+                obj.m.add(*[1,])
+            #删除外键数据
+                obj.m.remove(1)
+                obj.m.remove(2,3)
+                obj.m.remove(*[4,])
+            #修改外键数据
+                obj.m.set([1,])  #参数必须传可迭代对象,会将(1->(2,3))设置为(1->1)
+            #获取外键数据
+                q = obj.m.all() #做了一次筛选，把和方少伟相关的帅选出来了
+                #<QuerySet [<Girl: Girl object (1)>]>,Girl对象              
+                obj.m.filter(name = "小鱼") #直接填Girl里面的字段
+             
+             
+            #反向连接
+                obj = models.Girl.objects.filter(name = "小鱼").first()
+                v = obj.boy_set.all()
+                print(v)
+          
+          
+        4.ManyToManyField和Django联合
+            class Boy(models.Model):
+                name = models.CharField(max_length=32)
+                m = models.ManyToManyField('Girl',through="Love",through_fields=('b','g',))
+
+            class Girl(models.Model):
+                name = models.CharField(max_length=32)
+                # m = models.ManyToManyField('Boy')
+
+            class Love(models.Model):
+                b = models.ForeignKey('Boy',null = True,on_delete=models.CASCADE)
+                g = models.ForeignKey('Girl',null = True,on_delete=models.CASCADE)
+
+                class Meta:
+                    unique_together = [
+                        ('b','g'),
+                    ]
+                    
+                由于Love可以定制化,所以所有对于ManyToManyField的删除修改操作(除了obj.m.clear()以外)都不会生效
+                ManyToManyField的查询方法可生效
+            
+                
+            
+	
+4. 总结回顾
+	1.数据操作
+		-models.UserInfo.objects.create(id = 1,title = 'haha')
+		-filter(id__it=1,name = 'qq')
+		-filter(id = 1,title = '22').update(id = 2,title = '33')
+		-filter(id = 2).delete()
+		-all()
+		-all().values() [dict,dict,...]
+		-all().values_list() [(),(),...]
+		-all().count() 获取个数
+		-buk_create(10) #依次最多向数据库提交10条数据
+		-q = models.xx.objects.all().only('id')  #q是QuerySet对象
+		-Q函数(多条件组合,和filter连用)
+		-F函数(数据库原来的数据)
+		-filter与annotate聚合函数的顺序(filter在前就是where,filter在后就是having)
+		-order_by()
+		-extra()
+			-select={'xxx','%s'} select 1 as xxx from 'xxx','x'
+			-select_params = [1,]
+			-table = ['x',] #默认笛卡尔积
+			-where
+			-params
+			-order_by
+		-filter(id__range=[1,3])
+		-exclude(id = 1)
+		-exist
+		-raw('select id,title',)原生的sql语句
+		-aggregate聚合函数
+		-filter(id__gt)
+		-filter(id__in=[1,2])
+		-first() #返回第一条
+		-last() #返回最后一条
+		-startswith/endswith
+		-defer()
+		-connection
+		-max,min,count,sum,avg
+		-makemigrations/migrate
+		-reverse()
+		-distinct()
+		-get()
+		-...
+        
+        
+    2.以后推荐在更新和查询的时候用字典自动封装的方式传参，汇合前端结合的更好
+        model.UserInfo.objects.filter(id = 1).update(**{'id':1,'name':'xxxx'})
+    
+    

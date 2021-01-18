@@ -1,0 +1,208 @@
+网页会话
+	1.Cookies:
+		Cookie的由来：
+			因为HTTP协议是无状态的，每次请求都是独立的，即请求即用的。
+		Cookies是什么？
+			a.就是保存在浏览器（本地）上的键值对
+			b.服务端可以向用户浏览器写cookie
+			c.客户端每次发请求，会携带cookie去
+			请求头:
+				GET /HTTP/1.1
+				Host: www.baidu.com
+				Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+				Accept-Encoding: gzip, deflate, br
+				Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+				Cache-Control: max-age=0
+				Connection: keep-alive
+				Cookie: "很长的字符串"，
+				# 每次发请求就会带着这个去发请求,服务端会根据cookie中的信息来做出响应,一般用来保留用户登录的信息，在session结束之前在此访问需要登录的网页的话，cookies就能保留登录信
+				Sec-Fetch-Dest: document
+				Sec-Fetch-Mode: navigate
+				Sec-Fetch-Site: none
+				Sec-Fetch-User: ?1
+				Upgrade-Insecure-Requests: 1
+				User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.66
+			
+			b.服务端控制着响应，在响应头(Response Header)里可以让浏览器在本地保存
+			（键值对Cookies),下一次请求再发送的时候就会自动携带这个键值对。
+			
+		Cookies的应用
+			1.登录，免登录
+			2.记录用户的浏览习惯
+			3.简单的投票限制
+		
+		Cookie是服务端设置的。我们浏览器可以不让服务端设置Cookies(禁用Cookies)
+		
+		  
+		Cookies 不给他设置超时时间，默认关闭浏览器就消失了
+			
+		
+	2.Session:
+		cookie本身只支持4096个字节，而且cookie本身保存在客户端，可能被拦截或窃取。
+		因此需要有一种新的东西，能够支持更多的字节，并且保存在服务器，又比较高的安全性，
+		这就是Session
+		
+		Session定义：保存在服务端的数据，本质是键值对
+		
+		Session必须依赖于cookies,用于保持会话(登录过了之后一段时间内不用再登录)
+			-具体
+				当用户登录了之后，服务器会给用户客户端发送一个随机字符串"aaa",同时在服务端的session中
+				保存了一个形如 
+					{"aaa":{'id':1,'name':'于浩',email='xxxx'},
+					 "aaa1":{...}, #之前的用户
+					 ...
+					}的大字典
+				这样用户即使拿到了"aaa"字符串，也没有具体用户信息数据等敏感数据,就不能够通过在本地修改cookies然后
+				提交cookies伪造用户的方式登录服务器了
+		
+		Django 中Session做的事：
+			1.在服务端生成随机的字符串
+			2.生成和上面的随机字符串对应的大字典，用于保存用户数据
+			3.随机字符串当成cookies 返回给浏览器
+			
+		取Session:
+			1.从浏览器的request携带的cookies里面找到随机字符串，拿到随机字符串
+			2.取Session 中对应的大字典
+			3.从大字典中取值
+			
+	Session的优势：
+		1.比Cookies能存的数据多
+		2.安全性好，数据都存在服务端
+	Session的缺点：
+		1.Session数据量大，会占用一些资源
+		
+		
+		
+		
+Django 的 Cookies操作:
+	获取所有的cookies
+        request.COOKIES
+        
+    获取某个COOKIE
+        request.COOKIES.get('ticket')
+	
+	设置
+        rep=render(request,...)
+        rep=redirect('/home/') #rep = HttpResponse('OK')
+        
+        #max_age表示cookies有效时间10s
+        #path不填默认设置全局cookies(所有url都能通过request.COOKIES读取到这个cookie),path设置之后表示cookie只能在某个url下读取到
+        #domain默认当前域名(一级域名),只有访问某个域名的时候才能读取该cookie.(涉及到多域名的时候会用到)
+        #httponly是给https提供的(https就是http加了SSH公钥和私钥)，填写False表示只能自Http请求中传入Cookies，js代码无法获取
+        www.baidu.com (一级域名) 能访问
+            buy.baidu.com (二级域名) 不能访问
+                news.baidu.com （三级域名) 不能访问
+        
+        rep.set_cookie(key,value,max_age = 10,path = '/li2/',domain = '',secure = False,httponly = False) #httponly在做https时候用到
+        
+	
+	
+	用例：
+    -明文cookies
+		def classes(request):
+			#验证是否携带cookies,如果没有，就重新登录
+			tk = request.COOKIES.get('ticket')
+			if not tk:
+				return redirect('/login/')
+			
+		
+		def login(request):
+			if request.method = "GET":
+				return render(request,'login.html')
+			else:
+				user = request.POST.get('username')
+				pwd = request.POST.get('password')
+				if user == 'alex' and pwd = '123':
+					obj = redirect('/classes/') #设置重定向页面
+					obj.set_cookie('ticket':'asasa') #为即将返回的重定向页面写入cookie用于下次登录免验证
+					return obj
+				else:
+					return render(request,'login.html')
+	
+    
+    -密文cookies(签名)
+        -设置签名
+            obj = HttpResponse('OK')
+            obj.set_signed_cookie('k1','hahaha',salt='jjjjjj') #salt相当于md5的加盐操作
+            
+        -解密并获取签名
+            tk = request.get_signed_cookie('ticket',salt = 'jjjjjj')
+        
+        
+    -可以自己定义签名(不做重点)
+
+
+
+
+Django 的 Session 操作:(详细见博客https://www.cnblogs.com/wupeiqi/articles/5246483.html)
+	-Session中的用户数据
+		获取
+		request.session.get('k1')
+		
+		设置
+		request.session.setdefault('k1',123) #不存在才设置
+		
+		删除
+		del request.seesion('k1')
+	
+	-Session中的随机字符串
+		#用户session的随机字符串
+		key = request.session.session_key
+		
+		# 将所有Session失效日期小于当前日期的数据在数据库中删除
+        request.session.clear_expired() #在浏览器端不关闭的话默认是两周，但是数据库中不会删除，因此这个方法应运而生
+		
+		
+        # 检查 用户session的随机字符串 在数据库中是否
+        request.session.exists(key)
+ 
+ 
+        # 删除当前用户的所有Session数据
+        request.session.delete(key)
+		
+		
+		#设置在浏览器中的session的超时时间
+		request.session.set_expiry(value)#value单位是秒,在浏览器和数据库中都设置了expire时间
+            * 如果value是个整数，session会在些秒数后失效。
+            * 如果value是个datatime或timedelta，session就会在这个时间后失效。
+            * 如果value是0,用户关闭浏览器session就会失效。
+            * 如果value是None,session会依赖全局session失效策略。
+		
+		
+		#配置文件
+			a. 配置 settings.py
+				#默认将session放在服务器的数据库里
+					SESSION_ENGINE = 'django.contrib.sessions.backends.cache'  # 引擎
+					SESSION_CACHE_ALIAS = 'default'       # 使用的缓存别名（默认内存缓存，也可以是memcache），此处别名依赖缓存的设置
+				 
+				 
+					SESSION_COOKIE_NAME ＝ "sessionid"    # Session的cookie保存在浏览器上时的key，即：sessionid＝随机字符串
+					# Session的cookie保存的路径，/表示对整个django project的所有页面都生效,填写具体的值的话就只对于某一个网址有效,
+					# 也就是这个网址可以保存用户的登录信息一段时间
+					SESSION_COOKIE_PATH ＝ "/"            
+					SESSION_COOKIE_DOMAIN = None          # Session的cookie保存的域名
+					SESSION_COOKIE_SECURE = False         # 是否Https传输cookie
+					SESSION_COOKIE_HTTPONLY = True        # 是否Session的cookie只支持http传输
+					SESSION_COOKIE_AGE = 1209600          # Session的cookie失效日期（2周），优先级不如request.session.set_expiry(value)
+					SESSION_EXPIRE_AT_BROWSER_CLOSE = False      # 是否关闭浏览器使得Session过期
+					SESSION_SAVE_EVERY_REQUEST = False           # 是否每次请求都保存Session，默认修改之后才保存(就是这个过期时间受不受页面刷新的影响)
+						
+						
+				#保存在文件中
+					SESSION_ENGINE = 'django.contrib.sessions.backends.file'    # 引擎
+					SESSION_FILE_PATH = None      # 缓存文件路径，如果为None，则使用tempfile模块获取一个临时地址tempfile.gettempdir()                                                            # 如：/var/folders/d3/j9tj0gz93dg06bmwxmhh6_xm0000gn/T
+		
+		
+				#保存在加密的cookie中(相当于没有用session)
+					SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'   # 引擎
+				
+				
+				#保存在缓存中(缓存服务器,因为内存快)
+					SESSION_ENGINE = 'django.contrib.sessions.backends.cache'    # 引擎
+					SESSION_CACHE_ALIAS = 'default'  #使用的缓存别名
+					
+				#保存在缓存+数据库(一般不用)
+					SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'    # 引擎
+				
+			
+		

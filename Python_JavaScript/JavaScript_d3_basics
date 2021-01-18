@@ -1,0 +1,12 @@
+Promise函数
+	var myPromise = new Promise((resolve)=>{
+			const message = "hahaha"
+			setTimeout(()=>resolve(message),1000)
+		}
+			)
+		myPromise.then((message)=>console.log(message)); //message是传到resolve里的参数
+
+CSV函数
+csv('data.csv').then(data=>{
+  data.forEach(row=>{row.population = +row.population;})
+  console.log(data)})

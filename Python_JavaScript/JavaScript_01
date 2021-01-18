@@ -1,0 +1,9 @@
+JavaScript
+	编程语言
+	1.放置位置:
+		body内部最下面
+	2.变量:
+		var a = 123; 声明局部变量
+		a = 123; 全局变量
+		var ab;未定义变量(undefined)
+		见网站

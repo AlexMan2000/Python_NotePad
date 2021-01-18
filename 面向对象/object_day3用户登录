@@ -1,0 +1,60 @@
+class UserInfo:
+    def __init__(self,userinfo):
+        self.info=userinfo
+        self.user=None
+        self.loginstatus=False
+    
+    def inter(self):
+        print('Please make your choice\n1.用户登录\n2.查看用户信息\n3.购买抱枕')
+        while True:
+            a=int(input('序号:'))
+            if a==1:
+                self.login()
+                break
+            elif a==2 and self.loginstatus==True:
+                self.info()
+                break
+            elif a==3 and self.loginstatus==True:
+                self.shopping()
+                break
+            else:
+                print('请先登录')
+                continue
+        while self.loginstatus==True:
+            print('Please make your choice\n1.查看用户信息\n2.购买抱枕')
+            b=int(input('Please make your choice'))
+            if b==1:
+                self.info()
+                break
+            elif b==2:
+                self.shopping()
+                break
+            else:
+                print('Please make your choice as shown above')
+                continue
+            
+    def login(self):
+        self.user=input('Please enter your name')
+        while self.user not in self.info:
+            print('User not found')
+            self.user=input('Please enter your name')
+        password=input('Please enter your password')
+        while self.user in self.info:
+            if self.user=='alex' and password==self.info[self.user]:
+                print('登录成功')
+                break
+            else:
+                print('密码错误，请重新输入密码')
+                password=input('Please enter your password')
+                continue                               
+        self.loginstatus=True      
+        
+    def shopping(self):
+        print('%s购买了一个抱枕'%(self.user))
+    
+    def info(self):
+        print(self.info)
+                
+a=dict([('alex','123123'),('jack','123456'),('taylor','12342')])               
+ss=UserInfo(a)
+ss.inter()

@@ -1,0 +1,335 @@
+Python_django的网络生命周期
+	-#WSGI规范:(web服务网端接口)
+		'cgi': CGIServer,
+		'flup': FlupFCGIServer,
+		'wsgiref': WSGIRefServer, #django默认(工作中用uwsgi性能更好)
+		'waitress': WaitressServer,
+		'cherrypy': CherryPyServer,
+		'paste': PasteServer,
+		'fapws3': FapwsServer,
+		'tornado': TornadoServer,
+		'gae': AppEngineServer,
+		'twisted': TwistedServer,
+		'diesel': DieselServer,
+		'meinheld': MeinheldServer,
+		'gunicorn': GunicornServer,
+		'eventlet': EventletServer,
+		'gevent': GeventServer,
+		'geventSocketIO':GeventSocketIOServer,
+		'rocket': RocketServer,
+		'bjoern' : BjoernServer,
+		'auto': AutoServer,
+	
+    
+    -#Web框架本质
+        import socket
+
+        def handle_request(client):
+            #获得请求，获取数据
+            data = sock.recv(1024) #b'好'
+            # 自己解析data:各种split('\r\n...')
+            
+            #给django请求系那个管
+            -django做的工作
+            #django产出字符串
+            
+            client.send(产出字符串)
+            client.close()
+            
+            
+        def main():
+            sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+            sock.bind(('127.0.0.1',8080))
+            sock.listen(5)
+            while True:
+                client,addr = sock.accept() #阻塞住，等待结果
+                
+                #获得请求，获取数据
+                data = sock.recv(1024) #b'好'
+                # 自己解析data:各种split('\r\n...')
+                
+                #给django请求系那个管
+                    django做的工作
+                #django产出字符串
+                
+                client.send(产出字符串)
+                client.close()
+        
+        if __name__ == '__main__':
+            main()
+
+
+    #wsgiref规范框架(WSGI+django声明周期)
+        from wsgiref.simple_server import make_server
+     
+        
+        #environ请求相关的操作,start_response产出的东西
+        def RunServer(environ, start_response): #start_response相当于一个容器,最终返回给用户
+        
+            Django框架开始
+            中间件
+            路由系统
+            视图函数
+ 
+            start_response('200 OK', [('Content-Type', 'text/html')]) #响应头 
+            return [bytes('<h1>Hello, web!</h1>', encoding='utf-8'), ]  #响应体
+         
+         
+        class Foo:
+            def __init__(self):
+                pass
+                
+            def __call__(self):
+                pass
+                
+        obj = Foo()
+         
+        if __name__ == '__main__':
+            obj = WSGIHandler()
+            httpd = make_server('127.0.0.1', 8000, obj) #执行obj对象的__call__方法,传入参数启动服务
+            print("Serving HTTP on port 8000...")
+            httpd.serve_forever()
+            
+            
+    #django生命周期
+        请求进来 => WSGI规范(django框架之外) 
+        => (django框架之内)中间件 => 视图函数(处理数据，渲染模板) => 中间件 => 响应
+        
+        
+    #mvc/mtv
+        -MVC(给每个目录分上职责)
+            models(packages)  #数据库相关
+                
+            views(package)  #html模板
+                login.html
+            
+            controllers(package).account.py  #业务逻辑处理,视图函数
+                def index():
+                    return [b'index',]
+                 
+                def login():
+                    return [b'login',]
+                    
+        -MTV(功能模块的划分 Django属于MTV)
+            models(packages)  #数据库相关
+                
+            templates(package).account.py  #html模板
+                def index():
+                    return [b'index',]
+                 
+                def login():
+                    return [b'login',]
+                    
+            views(package)  #业务逻辑处理,视图函数
+                login.html
+            
+        -主函数文件
+            test.py
+                from wsgiref.simple_server import make_server
+                from controllers import account
+             
+                #1.请求一来执行RunServer,environ包含请求相关信息，start_response是一个响应内容的容器，用于返回给用户
+                def RunServer(environ, start_response):
+                    start_response('200 OK', [('Content-Type', 'text/html')])
+                    
+                    #2.获取请求头中的信息(用户发来的url)
+                    url = environ['PATH_INFO']
+                    urlpatterns = (
+                        ('/index/',account.index),
+                        ('/login/',account.login),
+                    )
+                    #检查发来的url是否存在匹配
+                    func = None
+                    for item in urlpatterns:
+                        if item[0] == url:
+                            func = item[1]
+                            break
+                    if func:
+                        return func()
+                    else:
+                        return ['404 not found',]
+                     
+                if __name__ == '__main__':
+                    httpd = make_server('127.0.0.1', 8000, RunServer)
+                    print "Serving HTTP on port 8000..."
+                    httpd.serve_forever()
+
+
+
+中间件
+    -作用：中间件是介于 request 与 response 处理之间的一道处理过程，
+        相对比较轻量级，并且在全局上改变django的输入与输出。
+    -方法
+        5个固定的方法:
+		process_request(self,request):
+			执行顺序:
+				按照注册的顺序(在settings.py里面设置 从上到下的顺序）
+			何时执行：
+				请求wsgi拿到之后
+			返回值：
+				默认如果return None,正常继续执行后续中间件的process_request方法
+				如果return response,就不执行后续的中间件的process_request方法,直接从自己的process_response返回
+                (1.10版本之前的django)直接到达最后一个中间件的process_response
+		
+		
+		process_response(self,request):
+			执行顺序:
+				按照注册的顺序的倒序(在settings.py里面设置 从上到下的顺序）
+			何时执行：
+				请求有响应的时候
+			返回值：
+				必须返回一个reponse对象！！！
+		
+		
+		process_view(self,request,view_func,view_args,view_kwargs):
+			执行顺序:
+				按照注册的顺序(在settings.py里面设置 从上到下的顺序）
+			何时执行：
+				在urls.py中找到对应关系后 在真正执行视图函数之前
+			返回值：
+				返回None,继续执行后续中间件的process_view方法
+				返回response,之后从最后一个process_response开始执行
+				
+				
+		process_exception(self,request,exception):
+			执行顺序:
+				按照注册的顺序的倒序(在settings.py里面设置 从上到下的顺序）
+			何时执行：
+				视图函数抛出异常时执行
+			返回值：
+				返回None,继续执行后续中间件的process_exception方法
+				返回response,之后从最后一个process_response开始执行
+		
+		
+		process_template_response(self,request,response):
+			执行顺序:
+				按照注册的顺序的倒序(在settings.py里面设置 从上到下的顺序）
+			何时执行：
+                视图函数中有render同名函数时才执行
+				视图函数执行完，在执行视图函数返回的响应对象的render方法之前
+			返回值：
+				返回None,继续执行后续中间件的process_exception方法
+				返回response,之后从最后一个process_response开始执行
+		
+		
+		Django调用 注册的中间件里面的五个顺序(鸡爪形状)
+			1.process_request从头遍历一遍(出现response直接从自己的process_response返回)
+            2.通过路由匹配urls.py脚本获取了对应的视图函数
+			3.process_view从头遍历一遍(有返回值就跳到最后一个process_response返回)
+            4.view.py的对应的视图函数
+			5.视图函数无异常 
+                从最后一个process_response返回
+              视图函数有异常
+                从最后一个process_exception往前执行，然后从最后一个process_response往前返回
+                process_exception中异常被处理(return HttpResponse())了，就不再往前执行process_exception,而是直接从最后一个process_response返回
+			6.有render方法 process_template_response
+			7.process_responses  
+            
+
+            -测试process_view用例:
+                from django.utils.deprecation import MiddlewareMixin
+
+                class M1(MiddlewareMixin):
+                    def process_request(self,request):
+                        print('m1.process_request')
+
+                    def process_view(self,request,call_back,callback_args,callback_kwargs):
+                        print('m1.process_view')
+                        response = call_back(request,*callback_args,**callback_kwargs)
+                        return response
+
+                    def process_response(self,request,response):
+                        print('m1.process_response')
+                        return response
+
+
+                class M2(MiddlewareMixin):
+                    def process_request(self,request):
+                        print('m2.process_request')
+
+                    def process_view(self, request, call_back, callback_args, callback_kwargs):
+                        print('m2.process_view')
+
+                    def process_response(self,request,response):
+                        print('m2.process_response')
+                        return response
+                        
+                结果:
+                    m1.process_request
+                    m2.process_request
+                    m1.process_view
+                    haha
+                    m2.process_response
+                    m1.process_response
+                
+                
+            -测试process_exception结果:(视图函数执行报错)
+                    m1.process_request
+                    m2.process_request
+                    m1.process_view
+                    m2.process_view
+                    haha
+                    Internal Server Error: /app01/index/
+                    Traceback (most recent call last):
+                      File "C:\Users\DELL\AppData\Local\Programs\Python\Python39\lib\site-packages\django\core\handlers\exception.py", line 47, in inner
+                        response = get_response(request)
+                      File "C:\Users\DELL\AppData\Local\Programs\Python\Python39\lib\site-packages\django\core\handlers\base.py", line 181, in _get_response
+                        response = wrapped_callback(request, *callback_args, **callback_kwargs)
+                      File "C:\Users\DELL\AppData\Local\Programs\Python\Python39\lib\site-packages\django\views\generic\base.py", line 70, in view
+                        return self.dispatch(request, *args, **kwargs)
+                      File "C:\Users\DELL\AppData\Local\Programs\Python\Python39\lib\site-packages\django\views\generic\base.py", line 98, in dispatch
+                        return handler(request, *args, **kwargs)
+                      File "C:\Users\DELL\PycharmProjects\Django_02_中间件\app01\views.py", line 11, in get
+                        print(aaa)
+                    NameError: name 'aaa' is not defined
+                    [13/Jan/2021 16:20:56] "GET /app01/index/ HTTP/1.1" 500 74511
+                    m2.process_response
+                    m1.process_response
+                    
+                    
+                    
+            -process_template_render做封装
+            class JSONResponse:
+                def __init__(self,req,status,msg):
+                    self.req = req
+                    self.status = status
+                    self.msg = msg
+                    
+                def render(self):
+                    ret = {
+                        'status':self.status,
+                        'msg':self.msg
+                        }
+                    return HttpResponse("...")
+                    
+            def test(request):
+                return JSONResponse(request,True,"错误信息")
+                
+               
+    -注册中间件
+        MIDDLEWARE = [
+            'django.middleware.security.SecurityMiddleware',
+            'django.contrib.sessions.middleware.SessionMiddleware',
+            'django.middleware.common.CommonMiddleware',
+            'django.middleware.csrf.CsrfViewMiddleware',
+            'django.contrib.auth.middleware.AuthenticationMiddleware',
+            'django.contrib.messages.middleware.MessageMiddleware',
+            'django.middleware.clickjacking.XFrameOptionsMiddleware',
+            'test1.M1',
+            'test1.M2',
+        ]
+                
+                
+    -应用：对所有请求或者一部分请求做批量处理
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
